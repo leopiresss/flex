@@ -1,0 +1,32 @@
+# Exemplo de deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stress-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stress-test
+  template:
+    metadata:
+      labels:
+        app: stress-test
+    spec:
+      containers:
+      - name: stress
+        image: polinux/stress-ng
+        command: ["stress-ng"]
+        args: [
+          "--cpu", "2",           # 2 workers de CPU
+          "--vm", "1",            # 1 worker de memória
+          "--vm-bytes", "512M",   # 512MB de RAM
+          "--timeout", "300s"     # 5 minutos
+        ]
+        resources:
+          requests:
+            memory: "100Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"

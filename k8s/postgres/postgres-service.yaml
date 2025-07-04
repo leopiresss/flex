@@ -3,11 +3,14 @@ kind: Service
 metadata:
   name: postgres-service
   namespace: default
+  labels:
+    app: postgres
 spec:
   selector:
     app: postgres
   ports:
   - port: 5432
     targetPort: 5432
+    nodePort: 30432  # Porta que será exposta no node
     protocol: TCP
-  type: ClusterIP
+  type: NodePort     # Mudança aqui
