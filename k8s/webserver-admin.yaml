@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webserver-admin
+  labels:
+    app: webserver-admin
+spec:
+  replicas: 2  # Especifica duas réplicas
+  selector:
+    matchLabels:
+      app: webserver-admin
+  template:
+    metadata:
+      labels:
+        app: webserver-admin
+    spec:
+      containers:
+      - name: webserver-admin
+        image: 192.168.242.129:5000/webserver-admin:latest  # Substitua pelo nome da sua imagem após build
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: webserver-admin-svc
+spec:
+  selector:
+    app: webserver-admin
+  ports:
+  - port: 80
+    targetPort: 80
+    nodePort: 30080
+  type: NodePort  # Permite acesso externo através de uma porta aleatória no nó
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: webserver-admin-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: leopires.mestrado.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: webserver-admin-svc
+            port:
+              number: 80
+

@@ -1,0 +1,25 @@
+FROM nginx:stable
+
+# Instala ferramentas administrativas do Linux
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    vim \
+    nano \
+    htop \
+    net-tools \
+    iputils-ping \
+    dnsutils \
+    telnet \
+    procps \
+    iproute2 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Cria um arquivo HTML personalizado que retorna "Hello World"
+RUN echo '<html><body><h1>Hello World</h1></body></html>' > /usr/share/nginx/html/index.html
+
+# Expõe a porta 80 para o servidor web
+EXPOSE 80
+
+# O NGINX já possui um CMD padrão para iniciar o servidor

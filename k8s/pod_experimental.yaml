@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: aula-pods
+  labels:
+    regiao: sul
+    versao: beta
+spec:
+  containers:
+    - name: ubuntu
+      image: ubuntu:22.04
+      command: ['tail', '-f', '/dev/null']
+  restartPolicy: OnFailure

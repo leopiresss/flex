@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: stj
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pod-com-dns
+  namespace: stj
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: pod-com-dns
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: pod-com-dns
+        version: v1
+    spec:
+      containers:
+        - name: web
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pod-com-dns
+  namespace: stj
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: pod.exemplo.com   # Ajuste aqui o DNS público desejado
+spec:
+  type: LoadBalancer
+  selector:
+    app: pod-com-dns
+    version: v1
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 80
