@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: webserver-admin
-        image: 192.168.242.129:5000/webserver-admin:latest  # Substitua pelo nome da sua imagem após build
+        image: 192.168.242.131:5000/webserver-admin:latest  # Substitua pelo nome da sua imagem após build
         ports:
         - containerPort: 80
         resources:
@@ -50,7 +50,7 @@ metadata:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   rules:
-  - host: leopires.mestrado.com
+  - host: projeto.mestrado.ia
     http:
       paths:
       - path: /
