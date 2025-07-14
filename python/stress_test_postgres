@@ -1,0 +1,566 @@
+#!/usr/bin/env python3
+"""
+PostgreSQL Stress Test Script - Versão Corrigida
+Testado em Ubuntu com Python 3.10
+"""
+
+import psycopg2
+import psycopg2.pool
+import threading
+import time
+import random
+import string
+import json
+import os
+import psutil
+from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import numpy as np
+from dataclasses import dataclass
+from typing import List, Dict, Any
+import logging
+
+# Configuração de logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('postgres_stress_test.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+@dataclass
+class TestConfig:
+    """Configuração dos testes"""
+    host: str = "192.168.242.131"
+    port: int = 30432
+    database: str = "mydb"
+    username: str = "postgres"
+    password: str = "postgres123"
+    
+    # Configurações de stress
+    max_connections: int = 20
+    test_duration: int = 120  # 2 minutos para teste inicial
+    query_types: List[str] = None
+    data_size_records: int = 5000  # Reduzido para teste inicial
+    
+    def __post_init__(self):
+        if self.query_types is None:
+            self.query_types = ['read', 'write', 'complex']
+
+class PostgreSQLStressTester:
+    def __init__(self, config: TestConfig):
+        self.config = config
+        self.connection_pool = None
+        self.metrics = {
+            'connections': [],
+            'query_times': [],
+            'cpu_usage': [],
+            'memory_usage': [],
+            'errors': [],
+            'cache_hits': []
+        }
+        self.test_start_time = None
+        self.stop_event = threading.Event()
+        
+    def test_connection(self):
+        """Testa a conexão com PostgreSQL"""
+        try:
+            conn = psycopg2.connect(
+                host=self.config.host,
+                port=self.config.port,
+                user=self.config.username,
+                password=self.config.password,
+                database='postgres'  # Conecta ao banco padrão primeiro
+            )
+            conn.close()
+            logger.info("✅ Conexão com PostgreSQL testada com sucesso")
+            return True
+        except Exception as e:
+            logger.error(f"❌ Erro ao conectar com PostgreSQL: {e}")
+            logger.error("Verifique se:")
+            logger.error("1. PostgreSQL está rodando")
+            logger.error("2. Credenciais estão corretas")
+            logger.error("3. Host/porta estão acessíveis")
+            return False
+        
+    def setup_database(self):
+        """Configura o banco de dados para os testes"""
+        try:
+            # Conexão inicial
+            conn = psycopg2.connect(
+                host=self.config.host,
+                port=self.config.port,
+                user=self.config.username,
+                password=self.config.password,
+                database='postgres'
+            )
+            conn.autocommit = True
+            cursor = conn.cursor()
+            
+            # Criar banco de teste se não existir
+            cursor.execute(f"""
+                SELECT 1 FROM pg_database WHERE datname = '{self.config.database}'
+            """)
+            
+            if not cursor.fetchone():
+                cursor.execute(f"CREATE DATABASE {self.config.database}")
+                logger.info(f"✅ Banco {self.config.database} criado")
+            else:
+                logger.info(f"✅ Banco {self.config.database} já existe")
+            
+            cursor.close()
+            conn.close()
+            
+            # Conectar ao banco de teste
+            conn = psycopg2.connect(
+                host=self.config.host,
+                port=self.config.port,
+                database=self.config.database,
+                user=self.config.username,
+                password=self.config.password
+            )
+            
+            cursor = conn.cursor()
+            
+            # Criar tabelas de teste
+            self._create_test_tables(cursor)
+            
+            # Popular com dados
+            self._populate_test_data(cursor)
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            logger.info("✅ Database setup concluído")
+            
+        except Exception as e:
+            logger.error(f"❌ Erro no setup do database: {e}")
+            raise
+    
+    def _create_test_tables(self, cursor):
+        """Cria tabelas para os testes"""
+        
+        # Tabela principal
+        cursor.execute("""
+            DROP TABLE IF EXISTS stress_test_main CASCADE
+        """)
+        
+        cursor.execute("""
+            CREATE TABLE stress_test_main (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(100),
+                email VARCHAR(100),
+                data TEXT,
+                value NUMERIC(10,2),
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+        """)
+        
+        # Tabela para JOINs
+        cursor.execute("""
+            DROP TABLE IF EXISTS stress_test_details CASCADE
+        """)
+        
+        cursor.execute("""
+            CREATE TABLE stress_test_details (
+                id SERIAL PRIMARY KEY,
+                main_id INTEGER REFERENCES stress_test_main(id),
+                detail_data TEXT,
+                score INTEGER
+            )
+        """)
+        
+        # Criar índices
+        cursor.execute("""
+            CREATE INDEX idx_stress_main_email ON stress_test_main(email);
+            CREATE INDEX idx_stress_details_main_id ON stress_test_details(main_id);
+        """)
+        
+        logger.info("✅ Tabelas de teste criadas")
+    
+    def _populate_test_data(self, cursor):
+        """Popula tabelas com dados de teste"""
+        
+        logger.info(f"📝 Inserindo {self.config.data_size_records} registros...")
+        
+        # Inserir dados em lotes
+        batch_size = 500
+        for i in range(0, self.config.data_size_records, batch_size):
+            batch_data = []
+            for j in range(batch_size):
+                if i + j >= self.config.data_size_records:
+                    break
+                    
+                name = f"User_{i+j}"
+                email = f"user{i+j}@test.com"
+                data = ''.join(random.choices(string.ascii_letters, k=50))
+                value = round(random.uniform(1, 1000), 2)
+                
+                batch_data.append((name, email, data, value))
+            
+            cursor.executemany("""
+                INSERT INTO stress_test_main (name, email, data, value) 
+                VALUES (%s, %s, %s, %s)
+            """, batch_data)
+            
+            if (i + batch_size) % 1000 == 0:
+                logger.info(f"📝 Inseridos {i + batch_size} registros...")
+        
+        # Popular tabela de detalhes
+        cursor.execute("SELECT COUNT(*) FROM stress_test_main")
+        main_count = cursor.fetchone()[0]
+        
+        detail_records = min(main_count, 2000)  # Máximo 2000 detalhes
+        
+        batch_data = []
+        for i in range(detail_records):
+            main_id = random.randint(1, main_count)
+            detail_data = f"Detail_{i}"
+            score = random.randint(1, 100)
+            batch_data.append((main_id, detail_data, score))
+        
+        cursor.executemany("""
+            INSERT INTO stress_test_details (main_id, detail_data, score) 
+            VALUES (%s, %s, %s)
+        """, batch_data)
+        
+        logger.info(f"✅ Dados inseridos: {main_count} principais, {detail_records} detalhes")
+    
+    def create_connection_pool(self):
+        """Cria pool de conexões"""
+        try:
+            self.connection_pool = psycopg2.pool.ThreadedConnectionPool(
+                minconn=1,
+                maxconn=self.config.max_connections,
+                host=self.config.host,
+                port=self.config.port,
+                database=self.config.database,
+                user=self.config.username,
+                password=self.config.password
+            )
+            logger.info(f"✅ Pool de conexões criado: {self.config.max_connections} conexões")
+        except Exception as e:
+            logger.error(f"❌ Erro ao criar pool de conexões: {e}")
+            raise
+    
+    def get_connection(self):
+        """Obtém conexão do pool"""
+        return self.connection_pool.getconn()
+    
+    def return_connection(self, conn):
+        """Retorna conexão para o pool"""
+        self.connection_pool.putconn(conn)
+    
+    def execute_read_query(self):
+        """Executa queries de leitura"""
+        queries = [
+            "SELECT * FROM stress_test_main WHERE id = %s",
+            "SELECT * FROM stress_test_main WHERE value > %s LIMIT 50",
+            "SELECT * FROM stress_test_main ORDER BY created_at DESC LIMIT 20",
+            "SELECT COUNT(*), AVG(score) FROM stress_test_details",
+        ]
+        
+        conn = None
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            
+            query = random.choice(queries)
+            start_time = time.time()
+            
+            if "%s" in query:
+                if "id =" in query:
+                    cursor.execute(query, (random.randint(1, 100),))
+                elif "value >" in query:
+                    cursor.execute(query, (random.uniform(100, 900),))
+            else:
+                cursor.execute(query)
+            
+            results = cursor.fetchall()
+            end_time = time.time()
+            
+            self.metrics['query_times'].append({
+                'type': 'read',
+                'duration': end_time - start_time,
+                'timestamp': datetime.now().isoformat(),
+                'rows': len(results)
+            })
+            
+            cursor.close()
+            
+        except Exception as e:
+            self.metrics['errors'].append({
+                'type': 'read_query',
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
+            })
+        finally:
+            if conn:
+                self.return_connection(conn)
+    
+    def execute_write_query(self):
+        """Executa queries de escrita"""
+        conn = None
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            start_time = time.time()
+            
+            # INSERT simples
+            name = f"StressUser_{random.randint(1, 99999)}"
+            email = f"stress{random.randint(1, 99999)}@test.com"
+            data = ''.join(random.choices(string.ascii_letters, k=30))
+            value = round(random.uniform(1, 1000), 2)
+            
+            cursor.execute("""
+                INSERT INTO stress_test_main (name, email, data, value) 
+                VALUES (%s, %s, %s, %s)
+            """, (name, email, data, value))
+            
+            conn.commit()
+            end_time = time.time()
+            
+            self.metrics['query_times'].append({
+                'type': 'write',
+                'duration': end_time - start_time,
+                'timestamp': datetime.now().isoformat(),
+                'rows': 1
+            })
+            
+            cursor.close()
+            
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            self.metrics['errors'].append({
+                'type': 'write_query',
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
+            })
+        finally:
+            if conn:
+                self.return_connection(conn)
+    
+    def execute_complex_query(self):
+        """Executa queries complexas"""
+        conn = None
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+            start_time = time.time()
+            
+            # JOIN simples
+            cursor.execute("""
+                SELECT m.name, m.email, COUNT(d.id) as detail_count
+                FROM stress_test_main m
+                LEFT JOIN stress_test_details d ON m.id = d.main_id
+                GROUP BY m.id, m.name, m.email
+                ORDER BY detail_count DESC
+                LIMIT 20
+            """)
+            
+            results = cursor.fetchall()
+            end_time = time.time()
+            
+            self.metrics['query_times'].append({
+                'type': 'complex',
+                'duration': end_time - start_time,
+                'timestamp': datetime.now().isoformat(),
+                'rows': len(results)
+            })
+            
+            cursor.close()
+            
+        except Exception as e:
+            self.metrics['errors'].append({
+                'type': 'complex_query',
+                'error': str(e),
+                'timestamp': datetime.now().isoformat()
+            })
+        finally:
+            if conn:
+                self.return_connection(conn)
+    
+    def collect_system_metrics(self):
+        """Coleta métricas do sistema"""
+        while not self.stop_event.is_set():
+            try:
+                cpu_percent = psutil.cpu_percent(interval=1)
+                memory = psutil.virtual_memory()
+                
+                self.metrics['cpu_usage'].append({
+                    'value': cpu_percent,
+                    'timestamp': datetime.now().isoformat()
+                })
+                
+                self.metrics['memory_usage'].append({
+                    'percent': memory.percent,
+                    'timestamp': datetime.now().isoformat()
+                })
+                
+                time.sleep(5)
+                
+            except Exception as e:
+                logger.error(f"Erro ao coletar métricas: {e}")
+                time.sleep(5)
+    
+    def worker_thread(self, thread_id: int):
+        """Thread worker que executa queries"""
+        logger.info(f"🚀 Worker thread {thread_id} iniciada")
+        
+        while not self.stop_event.is_set():
+            try:
+                query_type = random.choice(self.config.query_types)
+                
+                if query_type == 'read':
+                    self.execute_read_query()
+                elif query_type == 'write':
+                    self.execute_write_query()
+                elif query_type == 'complex':
+                    self.execute_complex_query()
+                
+                time.sleep(random.uniform(0.1, 0.5))
+                
+            except Exception as e:
+                logger.error(f"Erro no worker {thread_id}: {e}")
+                time.sleep(1)
+        
+        logger.info(f"🏁 Worker thread {thread_id} finalizada")
+    
+    def run_stress_test(self):
+        """Executa o teste de stress"""
+        logger.info("🚀 === Iniciando Teste de Stress PostgreSQL ===")
+        
+        # Testar conexão primeiro
+        if not self.test_connection():
+            return
+        
+        # Setup
+        self.setup_database()
+        self.create_connection_pool()
+        
+        self.test_start_time = datetime.now()
+        
+        # Thread de métricas do sistema
+        metrics_thread = threading.Thread(target=self.collect_system_metrics)
+        metrics_thread.start()
+        
+        # Worker threads
+        num_workers = min(self.config.max_connections // 2, 10)
+        worker_threads = []
+        
+        for i in range(num_workers):
+            thread = threading.Thread(target=self.worker_thread, args=(i,))
+            worker_threads.append(thread)
+            thread.start()
+        
+        logger.info(f"⏱️  Teste executando por {self.config.test_duration} segundos...")
+        logger.info(f"🔧 {num_workers} worker threads ativas")
+        
+        # Aguardar
+        time.sleep(self.config.test_duration)
+        
+        # Parar
+        logger.info("⏹️  Parando teste...")
+        self.stop_event.set()
+        
+        # Aguardar threads
+        for thread in worker_threads:
+            thread.join(timeout=5)
+        
+        metrics_thread.join(timeout=5)
+        
+        logger.info("✅ Teste concluído!")
+        
+        # Relatório
+        self.generate_report()
+    
+    def generate_report(self):
+        """Gera relatório simples"""
+        logger.info("📊 Gerando relatório...")
+        
+        total_queries = len(self.metrics['query_times'])
+        total_errors = len(self.metrics['errors'])
+        
+        print("\n" + "="*60)
+        print("📊 RELATÓRIO DE TESTE DE STRESS POSTGRESQL")
+        print("="*60)
+        print(f"⏱️  Duração: {self.config.test_duration} segundos")
+        print(f"✅ Queries executadas: {total_queries}")
+        print(f"❌ Erros: {total_errors}")
+        
+        if total_queries > 0:
+            qps = total_queries / self.config.test_duration
+            print(f"📈 QPS (Queries por segundo): {qps:.2f}")
+            
+            # Tempos de query
+            durations = [q['duration'] for q in self.metrics['query_times']]
+            print(f"⚡ Tempo médio por query: {np.mean(durations):.4f}s")
+            print(f"🐌 Query mais lenta: {np.max(durations):.4f}s")
+            print(f"🚀 Query mais rápida: {np.min(durations):.4f}s")
+            
+            # Por tipo
+            by_type = {}
+            for q in self.metrics['query_times']:
+                qtype = q['type']
+                if qtype not in by_type:
+                    by_type[qtype] = []
+                by_type[qtype].append(q['duration'])
+            
+            print(f"\n📋 Por tipo de query:")
+            for qtype, times in by_type.items():
+                print(f"  {qtype}: {len(times)} queries, média {np.mean(times):.4f}s")
+        
+        # Métricas de sistema
+        if self.metrics['cpu_usage']:
+            cpu_values = [c['value'] for c in self.metrics['cpu_usage']]
+            print(f"\n🖥️  CPU média: {np.mean(cpu_values):.1f}%")
+            print(f"🖥️  CPU máxima: {np.max(cpu_values):.1f}%")
+        
+        if self.metrics['memory_usage']:
+            mem_values = [m['percent'] for m in self.metrics['memory_usage']]
+            print(f"💾 Memória média: {np.mean(mem_values):.1f}%")
+            print(f"💾 Memória máxima: {np.max(mem_values):.1f}%")
+        
+        # Salvar dados
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"stress_test_results_{timestamp}.json"
+        
+        with open(filename, 'w') as f:
+            json.dump(self.metrics, f, indent=2)
+        
+        print(f"\n💾 Dados detalhados salvos em: {filename}")
+        print("="*60)
+
+def main():
+    """Função principal"""
+    
+    # Configuração - AJUSTE AQUI SUAS CREDENCIAIS
+    config = TestConfig(
+        host="192.168.242.131",
+        port=30432,
+        database="mydb",
+        username="postgres",
+        password="postgres123",  # ⚠️ ALTERE AQUI
+        max_connections=15,
+        test_duration=60,  # 1 minuto para teste inicial
+        query_types=['read', 'write', 'complex'],
+        data_size_records=2000
+    )
+    
+    tester = PostgreSQLStressTester(config)
+    
+    try:
+        tester.run_stress_test()
+    except KeyboardInterrupt:
+        logger.info("⏹️  Teste interrompido pelo usuário")
+        tester.stop_event.set()
+    except Exception as e:
+        logger.error(f"❌ Erro durante o teste: {e}")
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,87 @@
+2025-07-14 02:11:21,761 - INFO - 🚀 === Iniciando Teste de Stress PostgreSQL ===
+2025-07-14 02:11:21,767 - INFO - ✅ Conexão com PostgreSQL testada com sucesso
+2025-07-14 02:11:21,771 - INFO - ✅ Banco mydb já existe
+2025-07-14 02:11:21,788 - INFO - ✅ Tabelas de teste criadas
+2025-07-14 02:11:21,788 - INFO - 📝 Inserindo 2000 registros...
+2025-07-14 02:11:21,881 - INFO - 📝 Inseridos 1000 registros...
+2025-07-14 02:11:22,003 - INFO - 📝 Inseridos 2000 registros...
+2025-07-14 02:11:22,318 - INFO - ✅ Dados inseridos: 2000 principais, 2000 detalhes
+2025-07-14 02:11:22,320 - INFO - ✅ Database setup concluído
+2025-07-14 02:11:22,338 - INFO - ✅ Pool de conexões criado: 15 conexões
+2025-07-14 02:11:22,338 - INFO - 🚀 Worker thread 0 iniciada
+2025-07-14 02:11:22,338 - INFO - 🚀 Worker thread 1 iniciada
+2025-07-14 02:11:22,339 - INFO - 🚀 Worker thread 2 iniciada
+2025-07-14 02:11:22,339 - INFO - 🚀 Worker thread 3 iniciada
+2025-07-14 02:11:22,340 - INFO - 🚀 Worker thread 4 iniciada
+2025-07-14 02:11:22,340 - INFO - 🚀 Worker thread 5 iniciada
+2025-07-14 02:11:22,340 - INFO - 🚀 Worker thread 6 iniciada
+2025-07-14 02:11:22,341 - INFO - ⏱️  Teste executando por 60 segundos...
+2025-07-14 02:11:22,341 - INFO - 🔧 7 worker threads ativas
+2025-07-14 02:12:22,399 - INFO - ⏹️  Parando teste...
+2025-07-14 02:12:22,403 - INFO - 🏁 Worker thread 3 finalizada
+2025-07-14 02:12:22,437 - INFO - 🏁 Worker thread 1 finalizada
+2025-07-14 02:12:22,446 - INFO - 🏁 Worker thread 6 finalizada
+2025-07-14 02:12:22,466 - INFO - 🏁 Worker thread 4 finalizada
+2025-07-14 02:12:22,550 - INFO - 🏁 Worker thread 2 finalizada
+2025-07-14 02:12:22,563 - INFO - 🏁 Worker thread 0 finalizada
+2025-07-14 02:12:22,801 - INFO - 🏁 Worker thread 5 finalizada
+2025-07-14 02:12:27,801 - INFO - ✅ Teste concluído!
+2025-07-14 02:12:27,801 - INFO - 📊 Gerando relatório...
+2025-07-14 02:13:36,451 - INFO - 🚀 === Iniciando Teste de Stress PostgreSQL ===
+2025-07-14 02:13:36,456 - INFO - ✅ Conexão com PostgreSQL testada com sucesso
+2025-07-14 02:13:36,459 - INFO - ✅ Banco mydb já existe
+2025-07-14 02:13:36,471 - INFO - ✅ Tabelas de teste criadas
+2025-07-14 02:13:36,471 - INFO - 📝 Inserindo 2000 registros...
+2025-07-14 02:13:36,550 - INFO - 📝 Inseridos 1000 registros...
+2025-07-14 02:13:36,700 - INFO - 📝 Inseridos 2000 registros...
+2025-07-14 02:13:36,985 - INFO - ✅ Dados inseridos: 2000 principais, 2000 detalhes
+2025-07-14 02:13:36,986 - INFO - ✅ Database setup concluído
+2025-07-14 02:13:36,990 - INFO - ✅ Pool de conexões criado: 15 conexões
+2025-07-14 02:13:36,990 - INFO - 🚀 Worker thread 0 iniciada
+2025-07-14 02:13:36,991 - INFO - 🚀 Worker thread 1 iniciada
+2025-07-14 02:13:36,991 - INFO - 🚀 Worker thread 2 iniciada
+2025-07-14 02:13:36,992 - INFO - 🚀 Worker thread 3 iniciada
+2025-07-14 02:13:36,993 - INFO - 🚀 Worker thread 4 iniciada
+2025-07-14 02:13:36,993 - INFO - 🚀 Worker thread 5 iniciada
+2025-07-14 02:13:36,993 - INFO - 🚀 Worker thread 6 iniciada
+2025-07-14 02:13:36,993 - INFO - ⏱️  Teste executando por 60 segundos...
+2025-07-14 02:13:36,994 - INFO - 🔧 7 worker threads ativas
+2025-07-14 02:14:37,050 - INFO - ⏹️  Parando teste...
+2025-07-14 02:14:37,095 - INFO - 🏁 Worker thread 1 finalizada
+2025-07-14 02:14:37,121 - INFO - 🏁 Worker thread 6 finalizada
+2025-07-14 02:14:37,126 - INFO - 🏁 Worker thread 0 finalizada
+2025-07-14 02:14:37,130 - INFO - 🏁 Worker thread 5 finalizada
+2025-07-14 02:14:37,166 - INFO - 🏁 Worker thread 4 finalizada
+2025-07-14 02:14:37,187 - INFO - 🏁 Worker thread 3 finalizada
+2025-07-14 02:14:37,363 - INFO - 🏁 Worker thread 2 finalizada
+2025-07-14 02:14:42,363 - INFO - ✅ Teste concluído!
+2025-07-14 02:14:42,364 - INFO - 📊 Gerando relatório...
+2025-07-14 02:19:28,129 - INFO - 🚀 === Iniciando Teste de Stress PostgreSQL ===
+2025-07-14 02:19:28,133 - INFO - ✅ Conexão com PostgreSQL testada com sucesso
+2025-07-14 02:19:28,137 - INFO - ✅ Banco mydb já existe
+2025-07-14 02:19:28,153 - INFO - ✅ Tabelas de teste criadas
+2025-07-14 02:19:28,153 - INFO - 📝 Inserindo 2000 registros...
+2025-07-14 02:19:28,274 - INFO - 📝 Inseridos 1000 registros...
+2025-07-14 02:19:28,410 - INFO - 📝 Inseridos 2000 registros...
+2025-07-14 02:19:28,692 - INFO - ✅ Dados inseridos: 2000 principais, 2000 detalhes
+2025-07-14 02:19:28,694 - INFO - ✅ Database setup concluído
+2025-07-14 02:19:28,697 - INFO - ✅ Pool de conexões criado: 15 conexões
+2025-07-14 02:19:28,698 - INFO - 🚀 Worker thread 0 iniciada
+2025-07-14 02:19:28,698 - INFO - 🚀 Worker thread 1 iniciada
+2025-07-14 02:19:28,698 - INFO - 🚀 Worker thread 2 iniciada
+2025-07-14 02:19:28,699 - INFO - 🚀 Worker thread 3 iniciada
+2025-07-14 02:19:28,699 - INFO - 🚀 Worker thread 4 iniciada
+2025-07-14 02:19:28,699 - INFO - 🚀 Worker thread 5 iniciada
+2025-07-14 02:19:28,699 - INFO - 🚀 Worker thread 6 iniciada
+2025-07-14 02:19:28,699 - INFO - ⏱️  Teste executando por 60 segundos...
+2025-07-14 02:19:28,699 - INFO - 🔧 7 worker threads ativas
+2025-07-14 02:20:28,759 - INFO - ⏹️  Parando teste...
+2025-07-14 02:20:28,859 - INFO - 🏁 Worker thread 2 finalizada
+2025-07-14 02:20:28,990 - INFO - 🏁 Worker thread 0 finalizada
+2025-07-14 02:20:28,992 - INFO - 🏁 Worker thread 6 finalizada
+2025-07-14 02:20:29,005 - INFO - 🏁 Worker thread 1 finalizada
+2025-07-14 02:20:29,126 - INFO - 🏁 Worker thread 3 finalizada
+2025-07-14 02:20:29,208 - INFO - 🏁 Worker thread 5 finalizada
+2025-07-14 02:20:29,247 - INFO - 🏁 Worker thread 4 finalizada
+2025-07-14 02:20:34,248 - INFO - ✅ Teste concluído!
+2025-07-14 02:20:34,248 - INFO - 📊 Gerando relatório...
