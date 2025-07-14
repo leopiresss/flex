@@ -41,7 +41,7 @@ class TestConfig:
     password: str = "postgres123"
     
     # Configurações de stress
-    max_connections: int = 20
+    max_connections: int = 40
     test_duration: int = 120  # 2 minutos para teste inicial
     query_types: List[str] = None
     data_size_records: int = 5000  # Reduzido para teste inicial
