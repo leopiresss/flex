@@ -42,3 +42,35 @@ echo "⚙️ Disponibilizando o dashboard do Microk8s.../n"
 microk8s kubectl port-forward --address 0.0.0.0 -n kube-system service/kubernetes-dashboard 10443:443 > /dev/null 2>&1 & 
  
 
+echo "=== ACESSANDO GRAFANA ==="
+
+# 1. Verificar se o Grafana está rodando
+echo "1. Verificando status do Grafana..."
+microk8s kubectl get pods -n observability | grep grafana
+
+# 2. Obter credenciais
+echo -e "\n2. Obtendo credenciais..."
+echo "Usuário: admin"
+echo -n "Senha: "
+microk8s kubectl get secret -n observability kube-prom-stack-grafana -o jsonpath="{.data.admin-password}" | base64 --decode
+echo
+
+# 3. Verificar porta disponível
+echo -e "\n3. Verificando portas disponíveis..."
+if ! ss -tlpn | grep -q :3000; then
+    PORT=3000
+    echo "Usando porta 3000"
+elif ! ss -tlpn | grep -q :3001; then
+    PORT=3001
+    echo "Usando porta 3001"
+else
+    PORT=3002
+    echo "Usando porta 3002"
+fi
+
+# 4. Instruções finais
+echo -e "\n4. Para acessar o Grafana:"
+echo "Execute: microk8s kubectl port-forward -n observability svc/kube-prom-stack-grafana $PORT:80"
+echo "Depois acesse: http://localhost:$PORT"
+echo "Use as credenciais mostradas acima"
+microk8s kubectl port-forward -n observability svc/kube-prom-stack-grafana $PORT:80  > /dev/null 2>&1 & 
