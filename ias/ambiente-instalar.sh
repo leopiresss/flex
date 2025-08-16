@@ -3,12 +3,16 @@
 # o token gerado pelo script deve ser utilizado na interface do dashboard
 
 echo "⚙️ Gerando o token do dashboard..." 
-
 microk8s kubectl describe secret -n kube-system microk8s-dashboard-token 
+
+echo "⚙️ Disponibilizando o dashboard do Microk8s.../n" 
+microk8s kubectl port-forward --address 0.0.0.0 -n kube-system service/kubernetes-dashboard 10443:443 > /dev/null 2>&1 & 
+
+
 
 echo "⚙️ Ativando o cadvisor para métricas..." 
 
-kubectl apply -f cadvisor.yml
+kubectl apply -f ./cadvisor/cadvisor.yml
 
 echo "Passo 1: Listando pods do cAdvisor no namespace kube-system..."
 
@@ -35,11 +39,6 @@ kubectl logs -n kube-system $CADVISOR_POD | tail -20
 echo
 echo "Passo 4: Verificando o endpoint /metrics do cAdvisor (primeiras 20 linhas):"
 curl --silent http://localhost:8080/metrics | head -20
-
-
-
-echo "⚙️ Disponibilizando o dashboard do Microk8s.../n" 
-microk8s kubectl port-forward --address 0.0.0.0 -n kube-system service/kubernetes-dashboard 10443:443 > /dev/null 2>&1 & 
  
 
 echo "=== ACESSANDO GRAFANA ==="
