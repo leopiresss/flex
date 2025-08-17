@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cpu-stress-test
+  labels:
+    app: cpu-stress
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cpu-stress
+  template:
+    metadata:
+      labels:
+        app: cpu-stress
+    spec:
+      containers:
+      - name: cpu-stress
+        image: cpu-stress:latest
+        imagePullPolicy: Never
+        command: ["python", "stress_cpu.py"]
+        args: ["--duration", "600", "--cores", "2", "--intensity", "90"]
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "2000m"
+            memory: "256Mi"
+        env:
+        - name: STRESS_DURATION
+          value: "600"
+        - name: STRESS_INTENSITY
+          value: "90"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cpu-stress-service
+spec:
+  selector:
+    app: cpu-stress
+  ports:
+  - port: 8080
+    targetPort: 8080
+  type: ClusterIP

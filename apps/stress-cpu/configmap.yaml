@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: stress-config
+data:
+  duration: "180"
+  intensity: "75"
+  cores: "2"

@@ -1,0 +1,22 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cpu-stress-job
+spec:
+  template:
+    spec:
+      containers:
+      - name: cpu-stress
+        image: cpu-stress:latest
+        imagePullPolicy: Never
+        command: ["python3", "stress_cpu.py"]
+        args: ["-d", "120", "-c", "1", "-i", "90"]
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "64Mi"
+          limits:
+            cpu: "1000m"
+            memory: "128Mi"
+      restartPolicy: Never
+  backoffLimit: 3

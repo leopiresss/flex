@@ -104,12 +104,11 @@ create_admin_user() {
 generate_token() {
     print_status "Gerando token de acesso..."
     TOKEN=$(microk8s kubectl create token dashboard-admin -n kube-system --duration=8760h 2>/dev/null)
-    
+
     if [ -z "$TOKEN" ]; then
         print_error "Falha ao gerar token"
         exit 1
     fi
-    
     print_success "Token gerado com sucesso!"
     return 0
 }
@@ -170,6 +169,7 @@ show_final_info() {
     echo -e "${YELLOW}🔑 TOKEN DE ACESSO:${NC}"
     echo "======================================"
     echo "$TOKEN"
+    echo "$TOKEN" > token.txt
     echo "======================================"
     echo ""
     

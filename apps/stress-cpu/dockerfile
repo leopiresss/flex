@@ -1,0 +1,23 @@
+FROM python:3.11-slim
+
+# Instala dependências do sistema
+RUN apt-get update && apt-get install -y \
+    htop \
+    procps \
+    && rm -rf /var/lib/apt/lists/*
+
+# Cria diretório de trabalho
+WORKDIR /app
+
+# Copia o script
+COPY stress_cpu.py .
+
+# Torna o script executável
+RUN chmod +x stress_cpu.py
+
+# Define usuário não-root para segurança
+RUN useradd -m -u 1000 stressuser
+USER stressuser
+
+# Comando padrão
+CMD ["python3", "stress_cpu.py"]

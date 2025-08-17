@@ -1,0 +1,29 @@
+cadvisor:
+  host: "localhost"
+  port: 8080
+  protocol: "http"
+  timeout: 30
+
+collection:
+  interval_seconds: 60
+  duration_minutes: 60
+
+# Habilitar debug para investigar problemas
+debug: true
+
+metrics:
+  containers:
+    - cpu_usage
+    - memory_usage
+    - network_rx_bytes
+    - network_tx_bytes
+    - filesystem_usage
+
+export:
+  formats: ["csv", "json", "parquet"]
+  include_charts: true
+
+dashboard:
+  host: "0.0.0.0"
+  port: 8050
+  debug: false
