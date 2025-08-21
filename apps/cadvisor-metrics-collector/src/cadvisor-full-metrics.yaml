@@ -1,0 +1,140 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cadvisor
+  namespace: monitoring
+  labels:
+    app: cadvisor
+spec:
+  selector:
+    matchLabels:
+      app: cadvisor
+  template:
+    metadata:
+      labels:
+        app: cadvisor
+    spec:
+      serviceAccountName: cadvisor
+      hostNetwork: true
+      hostPID: true
+      containers:
+      - name: cadvisor
+        image: gcr.io/cadvisor/cadvisor:v0.47.0
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+          name: http
+        resources:
+          requests:
+            memory: 400Mi
+            cpu: 200m
+          limits:
+            memory: 800Mi
+            cpu: 500m
+        volumeMounts:
+        - name: rootfs
+          mountPath: /rootfs
+          readOnly: false
+        - name: var-run
+          mountPath: /var/run
+          readOnly: false
+        - name: sys
+          mountPath: /sys
+          readOnly: false
+        - name: var-lib-containers
+          mountPath: /var/lib/containers
+          readOnly: false
+        - name: dev-disk
+          mountPath: /dev/disk
+          readOnly: false
+        - name: proc
+          mountPath: /host/proc
+          readOnly: false
+        - name: dev-kmsg
+          mountPath: /dev/kmsg
+          readOnly: false
+        args:
+          # Configurações básicas
+          - --housekeeping_interval=5s
+          - --max_housekeeping_interval=10s
+          - --event_storage_event_limit=default=100000
+          - --event_storage_age_limit=default=24h
+          
+          # HABILITAR TODAS AS MÉTRICAS
+          # Remover todas as exclusões de métricas
+          # - --disable_metrics=  # Comentado para habilitar tudo
+          
+          # Métricas específicas habilitadas
+          - --enable_metrics=cpu,memory,network,disk,diskIO,hugetlb,referenced_memory,cpu_topology,tcp,udp,sched,process,percpu,resctrl
+          
+          # Configurações de coleta detalhada
+          - --collect_metrics_cpu=true
+          - --collect_metrics_memory=true
+          - --collect_metrics_network=true
+          - --collect_metrics_disk=true
+          - --collect_metrics_diskIO=true
+          - --collect_metrics_accelerator=true
+          - --collect_metrics_hugetlb=true
+          - --collect_metrics_referenced_memory=true
+          - --collect_metrics_cpu_topology=true
+          - --collect_metrics_tcp=true
+          - --collect_metrics_udp=true
+          - --collect_metrics_sched=true
+          - --collect_metrics_process=true
+          - --collect_metrics_percpu=true
+          - --collect_metrics_resctrl=true
+          
+          # Configurações de labels
+          - --store_container_labels=true
+          - --whitelisted_container_labels=io.kubernetes.container.name,io.kubernetes.pod.name,io.kubernetes.pod.namespace,io.kubernetes.pod.uid,app,version,component
+          
+          # Configurações de armazenamento
+          - --storage_duration=2h
+          - --global_housekeeping_interval=1m
+          
+          # Configurações de runtime
+          - --containerd=/run/containerd/containerd.sock
+          - --containerd_namespace=k8s.io
+          - --docker_only=false
+          
+          # Configurações de performance
+          - --enable_load_reader=true
+          - --enable_metrics=app,cpu,disk,diskIO,memory,network,process
+          
+          # Configurações de debug (opcional)
+          - --log_level=2
+          - --logtostderr=true
+          
+        securityContext:
+          privileged: true
+        env:
+        - name: CADVISOR_HEALTHCHECK_URL
+          value: http://localhost:8080/healthz
+      volumes:
+      - name: rootfs
+        hostPath:
+          path: /
+      - name: var-run
+        hostPath:
+          path: /var/run
+      - name: sys
+        hostPath:
+          path: /sys
+      - name: var-lib-containers
+        hostPath:
+          path: /var/lib/containers
+      - name: dev-disk
+        hostPath:
+          path: /dev/disk
+      - name: proc
+        hostPath:
+          path: /proc
+      - name: dev-kmsg
+        hostPath:
+          path: /dev/kmsg
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        effect: NoSchedule
+      terminationGracePeriodSeconds: 30

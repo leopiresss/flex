@@ -66,7 +66,7 @@ enable_dashboard() {
     print_status "Aguardando pods do dashboard ficarem prontos..."
     microk8s kubectl wait --for=condition=ready pod -l k8s-app=kubernetes-dashboard -n kube-system --timeout=500s
 
-    microk8s enable rbac
+    #microk8s enable rbac
     microk8s enable metrics-server
 
     if [ $? -eq 0 ]; then

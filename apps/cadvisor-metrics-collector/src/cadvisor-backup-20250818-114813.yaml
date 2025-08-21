@@ -1,0 +1,151 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  annotations:
+    deprecated.daemonset.template.generation: "1"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"apps/v1","kind":"DaemonSet","metadata":{"annotations":{},"labels":{"app":"cadvisor"},"name":"cadvisor","namespace":"monitoring"},"spec":{"selector":{"matchLabels":{"app":"cadvisor"}},"template":{"metadata":{"labels":{"app":"cadvisor"}},"spec":{"containers":[{"args":["--housekeeping_interval=5s","--max_housekeeping_interval=10s","--event_storage_event_limit=default=100000","--event_storage_age_limit=default=24h","--enable_metrics=cpu,memory,network,disk,diskIO,accelerator,hugetlb,referenced_memory,cpu_topology,tcp,udp,sched,process,percpu,resctrl","--collect_metrics_cpu=true","--collect_metrics_memory=true","--collect_metrics_network=true","--collect_metrics_disk=true","--collect_metrics_diskIO=true","--collect_metrics_accelerator=true","--collect_metrics_hugetlb=true","--collect_metrics_referenced_memory=true","--collect_metrics_cpu_topology=true","--collect_metrics_tcp=true","--collect_metrics_udp=true","--collect_metrics_sched=true","--collect_metrics_process=true","--collect_metrics_percpu=true","--collect_metrics_resctrl=true","--store_container_labels=true","--whitelisted_container_labels=io.kubernetes.container.name,io.kubernetes.pod.name,io.kubernetes.pod.namespace,io.kubernetes.pod.uid,app,version,component","--storage_duration=2h","--global_housekeeping_interval=1m","--containerd=/run/containerd/containerd.sock","--containerd_namespace=k8s.io","--docker_only=false","--enable_load_reader=true","--enable_metrics=app,cpu,disk,diskIO,memory,network,process","--log_level=2","--logtostderr=true"],"env":[{"name":"CADVISOR_HEALTHCHECK_URL","value":"http://localhost:8080/healthz"}],"image":"gcr.io/cadvisor/cadvisor:v0.47.0","name":"cadvisor","ports":[{"containerPort":8080,"name":"http","protocol":"TCP"}],"resources":{"limits":{"cpu":"500m","memory":"800Mi"},"requests":{"cpu":"200m","memory":"400Mi"}},"securityContext":{"privileged":true},"volumeMounts":[{"mountPath":"/rootfs","name":"rootfs","readOnly":false},{"mountPath":"/var/run","name":"var-run","readOnly":false},{"mountPath":"/sys","name":"sys","readOnly":false},{"mountPath":"/var/lib/containers","name":"var-lib-containers","readOnly":false},{"mountPath":"/dev/disk","name":"dev-disk","readOnly":false},{"mountPath":"/host/proc","name":"proc","readOnly":false},{"mountPath":"/dev/kmsg","name":"dev-kmsg","readOnly":false}]}],"hostNetwork":true,"hostPID":true,"serviceAccountName":"cadvisor","terminationGracePeriodSeconds":30,"tolerations":[{"effect":"NoSchedule","key":"node-role.kubernetes.io/master"},{"effect":"NoSchedule","key":"node-role.kubernetes.io/control-plane"}],"volumes":[{"hostPath":{"path":"/"},"name":"rootfs"},{"hostPath":{"path":"/var/run"},"name":"var-run"},{"hostPath":{"path":"/sys"},"name":"sys"},{"hostPath":{"path":"/var/lib/containers"},"name":"var-lib-containers"},{"hostPath":{"path":"/dev/disk"},"name":"dev-disk"},{"hostPath":{"path":"/proc"},"name":"proc"},{"hostPath":{"path":"/dev/kmsg"},"name":"dev-kmsg"}]}}}}
+  creationTimestamp: "2025-08-18T11:46:41Z"
+  generation: 1
+  labels:
+    app: cadvisor
+  name: cadvisor
+  namespace: monitoring
+  resourceVersion: "6615"
+  uid: c53869d5-01ea-448a-9a8f-55039390b7b8
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: cadvisor
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: cadvisor
+    spec:
+      containers:
+      - args:
+        - --housekeeping_interval=5s
+        - --max_housekeeping_interval=10s
+        - --event_storage_event_limit=default=100000
+        - --event_storage_age_limit=default=24h
+        - --enable_metrics=cpu,memory,network,disk,diskIO,accelerator,hugetlb,referenced_memory,cpu_topology,tcp,udp,sched,process,percpu,resctrl
+        - --collect_metrics_cpu=true
+        - --collect_metrics_memory=true
+        - --collect_metrics_network=true
+        - --collect_metrics_disk=true
+        - --collect_metrics_diskIO=true
+        - --collect_metrics_accelerator=true
+        - --collect_metrics_hugetlb=true
+        - --collect_metrics_referenced_memory=true
+        - --collect_metrics_cpu_topology=true
+        - --collect_metrics_tcp=true
+        - --collect_metrics_udp=true
+        - --collect_metrics_sched=true
+        - --collect_metrics_process=true
+        - --collect_metrics_percpu=true
+        - --collect_metrics_resctrl=true
+        - --store_container_labels=true
+        - --whitelisted_container_labels=io.kubernetes.container.name,io.kubernetes.pod.name,io.kubernetes.pod.namespace,io.kubernetes.pod.uid,app,version,component
+        - --storage_duration=2h
+        - --global_housekeeping_interval=1m
+        - --containerd=/run/containerd/containerd.sock
+        - --containerd_namespace=k8s.io
+        - --docker_only=false
+        - --enable_load_reader=true
+        - --enable_metrics=app,cpu,disk,diskIO,memory,network,process
+        - --log_level=2
+        - --logtostderr=true
+        env:
+        - name: CADVISOR_HEALTHCHECK_URL
+          value: http://localhost:8080/healthz
+        image: gcr.io/cadvisor/cadvisor:v0.47.0
+        imagePullPolicy: IfNotPresent
+        name: cadvisor
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 800Mi
+          requests:
+            cpu: 200m
+            memory: 400Mi
+        securityContext:
+          privileged: true
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /rootfs
+          name: rootfs
+        - mountPath: /var/run
+          name: var-run
+        - mountPath: /sys
+          name: sys
+        - mountPath: /var/lib/containers
+          name: var-lib-containers
+        - mountPath: /dev/disk
+          name: dev-disk
+        - mountPath: /host/proc
+          name: proc
+        - mountPath: /dev/kmsg
+          name: dev-kmsg
+      dnsPolicy: ClusterFirst
+      hostNetwork: true
+      hostPID: true
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: cadvisor
+      serviceAccountName: cadvisor
+      terminationGracePeriodSeconds: 30
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+      volumes:
+      - hostPath:
+          path: /
+          type: ""
+        name: rootfs
+      - hostPath:
+          path: /var/run
+          type: ""
+        name: var-run
+      - hostPath:
+          path: /sys
+          type: ""
+        name: sys
+      - hostPath:
+          path: /var/lib/containers
+          type: ""
+        name: var-lib-containers
+      - hostPath:
+          path: /dev/disk
+          type: ""
+        name: dev-disk
+      - hostPath:
+          path: /proc
+          type: ""
+        name: proc
+      - hostPath:
+          path: /dev/kmsg
+          type: ""
+        name: dev-kmsg
+  updateStrategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+status:
+  currentNumberScheduled: 1
+  desiredNumberScheduled: 1
+  numberMisscheduled: 0
+  numberReady: 0
+  numberUnavailable: 1
+  observedGeneration: 1
+  updatedNumberScheduled: 1

@@ -1,0 +1,119 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  annotations:
+    deprecated.daemonset.template.generation: "1"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"apps/v1","kind":"DaemonSet","metadata":{"annotations":{},"name":"cadvisor","namespace":"monitoring"},"spec":{"selector":{"matchLabels":{"name":"cadvisor"}},"template":{"metadata":{"labels":{"name":"cadvisor"}},"spec":{"containers":[{"args":["--housekeeping_interval=30s","--max_housekeeping_interval=35s","--event_storage_event_limit=default=0","--event_storage_age_limit=default=0","--store_container_labels=false"],"image":"gcr.io/cadvisor/cadvisor:v0.47.0","livenessProbe":{"httpGet":{"path":"/healthz","port":8080},"initialDelaySeconds":30,"timeoutSeconds":5},"name":"cadvisor","ports":[{"containerPort":8080,"name":"http","protocol":"TCP"}],"readinessProbe":{"httpGet":{"path":"/healthz","port":8080},"initialDelaySeconds":5,"timeoutSeconds":5},"resources":{"limits":{"cpu":"200m","memory":"300Mi"},"requests":{"cpu":"100m","memory":"100Mi"}},"securityContext":{"privileged":true,"runAsUser":0},"volumeMounts":[{"mountPath":"/rootfs","name":"rootfs","readOnly":false},{"mountPath":"/var/run","name":"var-run","readOnly":false},{"mountPath":"/sys","name":"sys","readOnly":false},{"mountPath":"/var/lib/containerd","name":"containerd","readOnly":false}]}],"hostNetwork":true,"hostPID":true,"terminationGracePeriodSeconds":30,"tolerations":[{"effect":"NoSchedule","operator":"Exists"}],"volumes":[{"hostPath":{"path":"/"},"name":"rootfs"},{"hostPath":{"path":"/var/run"},"name":"var-run"},{"hostPath":{"path":"/sys"},"name":"sys"},{"hostPath":{"path":"/var/snap/microk8s/common/var/lib/containerd"},"name":"containerd"}]}}}}
+  creationTimestamp: "2025-08-18T10:52:30Z"
+  generation: 1
+  name: cadvisor
+  namespace: monitoring
+  resourceVersion: "2157"
+  uid: 654d3964-e1b6-49c3-90c7-b1ca28a38876
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      name: cadvisor
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        name: cadvisor
+    spec:
+      containers:
+      - args:
+        - --housekeeping_interval=30s
+        - --max_housekeeping_interval=35s
+        - --event_storage_event_limit=default=0
+        - --event_storage_age_limit=default=0
+        - --store_container_labels=false
+        image: gcr.io/cadvisor/cadvisor:v0.47.0
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        name: cadvisor
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: 200m
+            memory: 300Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        securityContext:
+          privileged: true
+          runAsUser: 0
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /rootfs
+          name: rootfs
+        - mountPath: /var/run
+          name: var-run
+        - mountPath: /sys
+          name: sys
+        - mountPath: /var/lib/containerd
+          name: containerd
+      dnsPolicy: ClusterFirst
+      hostNetwork: true
+      hostPID: true
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+      volumes:
+      - hostPath:
+          path: /
+          type: ""
+        name: rootfs
+      - hostPath:
+          path: /var/run
+          type: ""
+        name: var-run
+      - hostPath:
+          path: /sys
+          type: ""
+        name: sys
+      - hostPath:
+          path: /var/snap/microk8s/common/var/lib/containerd
+          type: ""
+        name: containerd
+  updateStrategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+status:
+  currentNumberScheduled: 1
+  desiredNumberScheduled: 1
+  numberAvailable: 1
+  numberMisscheduled: 0
+  numberReady: 1
+  observedGeneration: 1
+  updatedNumberScheduled: 1
