@@ -1,6 +1,38 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
 scrape_configs:
-- job_name: cadvisor
-  scrape_interval: 5s
-  static_configs:
-  - targets:
-    - cadvisor:8080
+  # Job para coletar métricas do API Server
+  - job_name: 'kubernetes-apiserver'
+    static_configs:
+      - targets: ['192.168.242.134:10443']
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    metrics_path: /metrics
+    scheme: https  # ou http, dependendo da configuração
+    
+    # Configurações de TLS (se necessário)
+    tls_config:
+      insecure_skip_verify: true  # Para desenvolvimento
+      # ca_file: /path/to/ca.crt
+      # cert_file: /path/to/client.crt
+      # key_file: /path/to/client.key
+    
+    # Autenticação (se necessário)
+    # bearer_token_file: /path/to/token
+    # basic_auth:
+    #   username: admin
+    #   password: password
+
+  # Job adicional para métricas do kubelet
+  - job_name: 'kubernetes-kubelet'
+    static_configs:
+      - targets: ['192.168.242.134:10250']
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true

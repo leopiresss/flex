@@ -8,12 +8,16 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: cadvisor
-  endpoints:
-  - port: http
-    interval: 30s
-    path: /metrics
-    scheme: http
+      app.kubernetes.io/name: kubelet
   namespaceSelector:
     matchNames:
-    - observability
+    - kube-system
+  endpoints:
+  - port: https-metrics
+    scheme: https
+    path: /metrics/cadvisor
+    interval: 30s
+    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    tlsConfig:
+      caFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      insecureSkipVerify: true
