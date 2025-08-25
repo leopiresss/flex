@@ -1,5 +1,5 @@
 global:
-  scrape_interval: 15s
+  scrape_interval: 5s
   evaluation_interval: 15s
 
 rule_files:
@@ -10,7 +10,7 @@ scrape_configs:
   # Job para coletar métricas do API Server
   - job_name: 'kubernetes-apiserver'
     static_configs:
-      - targets: ['192.168.242.134:10443']
+      - targets: ['192.168.242.131:10443']
     scrape_interval: 15s
     scrape_timeout: 10s
     metrics_path: /metrics
@@ -32,7 +32,7 @@ scrape_configs:
   # Job adicional para métricas do kubelet
   - job_name: 'kubernetes-kubelet'
     static_configs:
-      - targets: ['192.168.242.134:10250']
+      - targets: ['192.168.242.131:10250']
     scheme: https
     tls_config:
       insecure_skip_verify: true

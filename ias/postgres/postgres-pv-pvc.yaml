@@ -1,6 +1,7 @@
 apiVersion: v1
 kind: PersistentVolume
 metadata:
+  namespace: stress-app
   name: postgres-pv
 spec:
   capacity:
@@ -15,8 +16,8 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
+  namespace: stress-app
   name: postgres-pvc
-  namespace: default
 spec:
   accessModes:
     - ReadWriteOnce

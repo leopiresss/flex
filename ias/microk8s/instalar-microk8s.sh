@@ -70,7 +70,7 @@ enable_dashboard() {
 
     microk8s enable rbac
     microk8s enable metrics-server
-    microk8s enable observability
+    # microk8s enable observability
 
     if [ $? -eq 0 ]; then
         print_success "Dashboard habilitado com sucesso!"
