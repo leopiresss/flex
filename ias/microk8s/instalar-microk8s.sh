@@ -1,4 +1,6 @@
 #!/bin/bash
+cd ./microk8s
+
 
 # Cores para output
 RED='\033[0;31m'
@@ -66,8 +68,9 @@ enable_dashboard() {
     print_status "Aguardando pods do dashboard ficarem prontos..."
     microk8s kubectl wait --for=condition=ready pod -l k8s-app=kubernetes-dashboard -n kube-system --timeout=500s
 
-    #microk8s enable rbac
+    microk8s enable rbac
     microk8s enable metrics-server
+    microk8s enable observability
 
     if [ $? -eq 0 ]; then
         print_success "Dashboard habilitado com sucesso!"

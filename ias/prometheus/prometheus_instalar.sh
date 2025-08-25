@@ -38,5 +38,5 @@ microk8s kubectl get pods -n observability
 echo "✅ Reinstalação concluída!"
 echo ""
 echo "Para acessar o Prometheus, execute:"
-echo "microk8s kubectl port-forward -n observability svc/kube-prom-stack-kube-prome-prometheus 9091:9090"
+echo "microk8s kubectl port-forward --address 0.0.0.0 -n observability svc/kube-prom-stack-kube-prome-prometheus 9091:9090"
 echo "Depois acesse: http://localhost:9091"

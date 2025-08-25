@@ -25,3 +25,5 @@ fi
 
 echo -e "\n7. ServiceAccount do Grafana:"
 microk8s kubectl get sa -n observability | grep grafana
+
+microk8s kubectl port-forward  --address 0.0.0.0 -n observability service/kube-prom-stack-grafana    9090:80 &
