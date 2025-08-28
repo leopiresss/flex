@@ -5,12 +5,13 @@ metadata:
   namespace: monitoring
   labels:
     app: cadvisor
+    version: v2.1
 spec:
+  type: NodePort
+  ports:
+  - port: 8080
+    targetPort: 8080
+    nodePort: 31194
+    name: cadvisor
   selector:
     app: cadvisor
-  ports:
-  - name: http
-    port: 8080
-    targetPort: 8080
-    protocol: TCP
-  type: ClusterIP

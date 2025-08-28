@@ -1,68 +1,63 @@
 #!/bin/bash
 
-echo "🔍 Diagnóstico Completo - cAdvisor sem Pods"
-echo "============================================="
+echo "=== Diagnóstico cAdvisor MicroK8s ==="
 
-# 1. Verificar MicroK8s
-echo "📦 Status do MicroK8s:"
-microk8s status
+# Verificar MicroK8s
+echo "📍 Status MicroK8s:"
+microk8s status --wait-ready
 
-# 2. Verificar nodes
-echo -e "\n🖥️  Nodes disponíveis:"
-kubectl get nodes -o wide
+# Obter nome do nó
+NODE_NAME=$(microk8s kubectl get nodes --no-headers | awk '{print $1}' | head -1)
+echo "🎯 Nó: $NODE_NAME"
 
-# 3. Verificar pods em execução
-echo -e "\n🚀 Pods em execução:"
-kubectl get pods -A --field-selector status.phase=Running | head -10
+# Iniciar proxy
+echo -e "\n🔧 Iniciando proxy..."
+microk8s kubectl proxy --port=8081 &
+PROXY_PID=$!
+sleep 3
 
-# 4. Verificar configuração do kubelet
-echo -e "\n⚙️  Configuração do kubelet:"
-sudo cat /var/snap/microk8s/current/args/kubelet | grep -E "(cadvisor|metrics|disable)" || echo "Nenhuma configuração específica encontrada"
+echo -e "\n📊 Testando endpoints disponíveis:"
 
-# 5. Verificar containers no runtime
-echo -e "\n📦 Containers no runtime:"
-sudo /snap/microk8s/current/bin/crictl ps | head -5
+# Testar diferentes endpoints
+endpoints=(
+    "/metrics/cadvisor"
+    "/metrics"
+    "/stats/summary"
+    "/healthz"
+    "/configz"
+    "/logs"
+)
 
-# 6. Testar conectividade com cAdvisor
-echo -e "\n🔗 Testando conectividade cAdvisor:"
-if ! pgrep -f "kubectl proxy" > /dev/null; then
-    kubectl proxy --port=8080 &
-    sleep 3
-fi
-
-NODE_NAME=$(kubectl get nodes --no-headers -o custom-columns=":metadata.name" | head -1)
-echo "Testando node: $NODE_NAME"
-
-# Testar se retorna algo
-CADVISOR_RESPONSE=$(curl -s "http://localhost:8080/api/v1/nodes/$NODE_NAME/proxy/metrics/cadvisor" | head -1)
-if [ -n "$CADVISOR_RESPONSE" ]; then
-    echo "✅ cAdvisor respondendo"
-    
-    # Verificar se há métricas de containers
-    CONTAINER_METRICS=$(curl -s "http://localhost:8080/api/v1/nodes/$NODE_NAME/proxy/metrics/cadvisor" | grep "container_" | wc -l)
-    echo "📊 Métricas de container encontradas: $CONTAINER_METRICS"
-    
-    # Verificar se há métricas de pods
-    POD_METRICS=$(curl -s "http://localhost:8080/api/v1/nodes/$NODE_NAME/proxy/metrics/cadvisor" | grep 'pod=' | wc -l)
-    echo "🎯 Métricas de pod encontradas: $POD_METRICS"
-    
-    if [ "$POD_METRICS" -eq 0 ]; then
-        echo "⚠️  PROBLEMA: Nenhuma métrica de pod encontrada"
+for endpoint in "${endpoints[@]}"; do
+    echo "Testando: $endpoint"
+    response=$(curl -s -w "%{http_code}" -o /dev/null "http://localhost:8081/api/v1/nodes/$NODE_NAME/proxy$endpoint")
+    if [[ "$response" == "200" ]]; then
+        echo "✅ $endpoint - OK"
         
-        # Mostrar algumas métricas disponíveis
-        echo "📋 Primeiras métricas disponíveis:"
-        curl -s "http://localhost:8080/api/v1/nodes/$NODE_NAME/proxy/metrics/cadvisor" | head -10
+        # Se for um endpoint de métricas, mostrar amostra
+        if [[ "$endpoint" == *"metrics"* ]] || [[ "$endpoint" == *"stats"* ]]; then
+            echo "📋 Amostra do conteúdo:"
+            curl -s "http://localhost:8081/api/v1/nodes/$NODE_NAME/proxy$endpoint" | head -10
+            echo "..."
+        fi
+    else
+        echo "❌ $endpoint - HTTP $response"
     fi
-else
-    echo "❌ cAdvisor não está respondendo"
-fi
+    echo ""
+done
 
-# 7. Verificar logs do kubelet
-echo -e "\n📋 Logs recentes do kubelet (últimas 20 linhas):"
-sudo journalctl -u snap.microk8s.daemon-kubelet -n 20 --no-pager | grep -E "(cadvisor|metrics|error)" || echo "Nenhum log relevante encontrado"
+# Verificar configuração do kubelet
+echo "🔧 Configuração do kubelet:"
+sudo cat /var/snap/microk8s/current/args/kubelet | grep -E "(cadvisor|metrics|port)"
 
-# 8. Verificar portas
-echo -e "\n🔌 Portas do kubelet:"
-sudo netstat -tlnp | grep kubelet || echo "Kubelet não encontrado nas portas"
+# Verificar processos
+echo -e "\n🔍 Processos relacionados:"
+ps aux | grep -E "(cadvisor|kubelet)" | grep -v grep
 
+# Verificar portas
+echo -e "\n🌐 Portas em uso:"
+sudo netstat -tlnp | grep -E "(10250|4194|8080|10255)"
+
+# Limpar proxy
+kill $PROXY_PID 2>/dev/null
 echo -e "\n✅ Diagnóstico concluído!"

@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cadvisor-latest
+  namespace: kube-system
+  labels:
+    app: cadvisor
+    version: v0.50.0
+spec:
+  selector:
+    matchLabels:
+      app: cadvisor
+  template:
+    metadata:
+      labels:
+        app: cadvisor
+        version: v0.50.0
+    spec:
+      hostNetwork: true
+      hostPID: true
+      containers:
+      - name: cadvisor
+        image: gcr.io/cadvisor/cadvisor:v0.50.0
+        ports:
+        - containerPort: 8080
+          hostPort: 8080
+          name: http
+          protocol: TCP
+        volumeMounts:
+        - name: rootfs
+          mountPath: /rootfs
+          readOnly: true
+        - name: var-run
+          mountPath: /var/run
+          readOnly: true
+        - name: sys
+          mountPath: /sys
+          readOnly: true
+        - name: var-lib-docker
+          mountPath: /var/lib/docker
+          readOnly: true
+        - name: dev-disk
+          mountPath: /dev/disk
+          readOnly: true
+        - name: proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: cgroup
+          mountPath: /sys/fs/cgroup
+          readOnly: true
+        args:
+        - --port=8080
+        - --housekeeping_interval=10s
+        - --max_housekeeping_interval=15s
+        - --event_storage_event_limit=default=0
+        - --event_storage_age_limit=default=0
+        - --disable_metrics=percpu,sched,tcp,udp,disk,diskIO,hugetlb,referenced_memory,cpu_topology,resctrl
+        - --docker_only=false
+        - --store_container_labels=false
+        - --whitelisted_container_labels=io.kubernetes.container.name,io.kubernetes.pod.name,io.kubernetes.pod.namespace
+        - --containerd=/var/snap/microk8s/common/run/containerd.sock
+        - --containerd_namespace=k8s.io
+        resources:
+          requests:
+            memory: 200Mi
+            cpu: 150m
+          limits:
+            memory: 2000Mi
+            cpu: 300m
+        securityContext:
+          privileged: true
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: rootfs
+        hostPath:
+          path: /
+      - name: var-run
+        hostPath:
+          path: /var/run
+      - name: sys
+        hostPath:
+          path: /sys
+      - name: var-lib-docker
+        hostPath:
+          path: /var/lib/docker
+      - name: dev-disk
+        hostPath:
+          path: /dev/disk
+      - name: proc
+        hostPath:
+          path: /proc
+      - name: cgroup
+        hostPath:
+          path: /sys/fs/cgroup
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        effect: NoSchedule
+      - operator: Exists
+        effect: NoExecute
+      - operator: Exists
+        effect: NoSchedule

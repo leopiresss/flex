@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace:   # Ajuste o namespace conforme necessário
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+
+    rule_files:
+      # - "first_rules.yml"
+      # - "second_rules.yml"
+
+    scrape_configs:
+      # Job para o próprio Prometheus (ESSENCIAL)
+      - job_name: 'prometheus'
+        static_configs:
+          - targets: ['localhost:9090']
+        scrape_interval: 30s
+        metrics_path: /metrics
+
+      # Job para Node Exporter
+      - job_name: 'node'
+        static_configs:
+          - targets: ['localhost:9100']
+        scrape_interval: 30s
+
+      # Job para cAdvisor
+      - job_name: 'cadvisor'
+        static_configs:
+          - targets: ['localhost:8080']
+        metrics_path: /metrics
+        scrape_interval: 30s
+
+      # Job para Kubelet (se disponível)
+      - job_name: 'kubernetes-nodes-cadvisor'
+        static_configs:
+          - targets: ['localhost:10250']
+        metrics_path: /metrics/cadvisor
+        scheme: https
+        tls_config:
+          insecure_skip_verify: true
+        scrape_interval: 30s

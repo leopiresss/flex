@@ -1,0 +1,25 @@
+apiVersion: v1
+data:
+  prometheus.yml: "global:\n  scrape_interval: 300s\n\nscrape_configs:\n  - job_name:
+    'kubernetes-apiserver'\n    kubernetes_sd_configs:\n      - role: endpoints\n
+    \       namespaces:\n          names:\n            - default\n    relabel_configs:\n
+    \     - source_labels: [__meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]\n
+    \       action: keep\n        regex: kubernetes;https\n    scheme: https\n    tls_config:\n
+    \     ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt\n    bearer_token_file:
+    /var/run/secrets/kubernetes.io/serviceaccount/token\n\n  - job_name: 'kubernetes-nodes'\n
+    \   kubernetes_sd_configs:\n      - role: node\n    relabel_configs:\n      -
+    action: labelmap\n        regex: __meta_kubernetes_node_label_(.+)\n    scheme:
+    https\n    tls_config:\n      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt\n
+    \   bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token\n    \n\n
+    \ - job_name: 'kubernetes-nodes-cadvisor'\n    scheme: http\n    metrics_path:
+    /metrics\n    static_configs:\n      - targets: ['192.168.242.131:8080']\n"
+kind: ConfigMap
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"v1","data":{"prometheus.yml":"global:\n  scrape_interval: 300s\n\nscrape_configs:\n  - job_name: 'kubernetes-apiserver'\n    kubernetes_sd_configs:\n      - role: endpoints\n        namespaces:\n          names:\n            - default\n    relabel_configs:\n      - source_labels: [__meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]\n        action: keep\n        regex: kubernetes;https\n    scheme: https\n    tls_config:\n      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt\n    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token\n\n  - job_name: 'kubernetes-nodes'\n    kubernetes_sd_configs:\n      - role: node\n    relabel_configs:\n      - action: labelmap\n        regex: __meta_kubernetes_node_label_(.+)\n    scheme: https\n    tls_config:\n      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt\n    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token\n    \n\n  - job_name: 'kubernetes-nodes-cadvisor'\n    scheme: http\n    metrics_path: /metrics\n    static_configs:\n      - targets: ['192.168.242.131:8080']\n"},"kind":"ConfigMap","metadata":{"annotations":{},"name":"prometheus-config","namespace":"monitoring"}}
+  creationTimestamp: "2025-08-26T14:07:26Z"
+  name: prometheus-config
+  namespace: monitoring
+  resourceVersion: "1543703"
+  uid: 6dac557c-fd79-4534-a3d4-a17b93f15466

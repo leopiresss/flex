@@ -1,6 +1,15 @@
+# Namespace monitoring
 apiVersion: v1
 kind: Namespace
 metadata:
   name: monitoring
   labels:
     name: monitoring
+---
+# Namespace stress-app (para referência)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: stress-app
+  labels:
+    name: stress-app
