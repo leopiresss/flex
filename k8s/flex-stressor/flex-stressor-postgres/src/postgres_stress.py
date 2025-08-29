@@ -319,7 +319,7 @@ def main():
     if len(sys.argv) > 1:
         config_file = sys.argv[1]
     else:
-        config_file = 'config/database.conf'
+        config_file = '../config/database.conf'
     
     if not os.path.exists(config_file):
         print(f"Arquivo de configuração não encontrado: {config_file}")

@@ -17,6 +17,9 @@ spec:
       containers:
       - name: prometheus
         image: prom/prometheus:latest
+        env:
+          - name: TZ
+            value: "America/Sao_Paulo"
         ports:
         - containerPort: 9090
         volumeMounts:

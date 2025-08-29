@@ -1,0 +1,348 @@
+2025-08-29 00:00:05,943 - INFO - === INICIANDO TESTE DE STRESS ===
+2025-08-29 00:00:05,943 - INFO - Conexões simultâneas: 10
+2025-08-29 00:00:05,943 - INFO - Duração: 60 segundos
+2025-08-29 00:00:05,943 - INFO - Intervalo entre queries: 0.1s
+2025-08-29 00:00:08,999 - ERROR - Erro na conexão: connection to server at "192.168.242.129", port 30432 failed: No route to host
+	Is the server running on that host and accepting TCP/IP connections?
+
+2025-08-29 00:00:08,999 - ERROR - Falha na conexão. Abortando teste.
+2025-08-29 00:00:37,344 - INFO - === INICIANDO TESTE DE STRESS ===
+2025-08-29 00:00:37,345 - INFO - Conexões simultâneas: 10
+2025-08-29 00:00:37,345 - INFO - Duração: 60 segundos
+2025-08-29 00:00:37,345 - INFO - Intervalo entre queries: 0.1s
+2025-08-29 00:00:40,423 - ERROR - Erro na conexão: connection to server at "192.168.242.129", port 30432 failed: No route to host
+	Is the server running on that host and accepting TCP/IP connections?
+
+2025-08-29 00:00:40,423 - ERROR - Falha na conexão. Abortando teste.
+2025-08-29 00:00:51,999 - INFO - === INICIANDO TESTE DE STRESS ===
+2025-08-29 00:00:52,003 - INFO - Conexões simultâneas: 10
+2025-08-29 00:00:52,003 - INFO - Duração: 60 segundos
+2025-08-29 00:00:52,003 - INFO - Intervalo entre queries: 0.1s
+2025-08-29 00:00:55,079 - ERROR - Erro na conexão: connection to server at "192.168.242.129", port 30432 failed: No route to host
+	Is the server running on that host and accepting TCP/IP connections?
+
+2025-08-29 00:00:55,079 - ERROR - Falha na conexão. Abortando teste.
+2025-08-29 00:01:07,547 - INFO - === INICIANDO TESTE DE STRESS ===
+2025-08-29 00:01:07,547 - INFO - Conexões simultâneas: 10
+2025-08-29 00:01:07,547 - INFO - Duração: 60 segundos
+2025-08-29 00:01:07,547 - INFO - Intervalo entre queries: 0.1s
+2025-08-29 00:01:10,599 - ERROR - Erro na conexão: connection to server at "192.168.242.129", port 30432 failed: No route to host
+	Is the server running on that host and accepting TCP/IP connections?
+
+2025-08-29 00:01:10,599 - ERROR - Falha na conexão. Abortando teste.
+2025-08-29 00:02:09,437 - INFO - === INICIANDO TESTE DE STRESS ===
+2025-08-29 00:02:09,437 - INFO - Conexões simultâneas: 10
+2025-08-29 00:02:09,438 - INFO - Duração: 60 segundos
+2025-08-29 00:02:09,438 - INFO - Intervalo entre queries: 0.1s
+2025-08-29 00:02:09,455 - INFO - Conexão bem-sucedida: PostgreSQL 16.1 (Debian 16.1-1.pgdg120+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14) 12.2.0, 64-bit
+2025-08-29 00:02:09,472 - INFO - Inserindo 1000 registros iniciais...
+2025-08-29 00:02:09,616 - INFO - Tabela de teste criada com sucesso
+2025-08-29 00:02:09,616 - INFO - Thread 0 iniciada
+2025-08-29 00:02:09,617 - INFO - Thread 1 iniciada
+2025-08-29 00:02:09,617 - INFO - Thread 2 iniciada
+2025-08-29 00:02:09,618 - INFO - Thread 3 iniciada
+2025-08-29 00:02:09,619 - INFO - Thread 4 iniciada
+2025-08-29 00:02:09,620 - INFO - Thread 5 iniciada
+2025-08-29 00:02:09,622 - INFO - Thread 6 iniciada
+2025-08-29 00:02:09,622 - INFO - Thread 7 iniciada
+2025-08-29 00:02:09,623 - INFO - Thread 8 iniciada
+2025-08-29 00:02:09,623 - INFO - Thread 9 iniciada
+2025-08-29 00:03:09,712 - INFO - Thread 9 finalizada
+2025-08-29 00:03:09,718 - INFO - Thread 5 finalizada
+2025-08-29 00:03:09,722 - INFO - Thread 0 finalizada
+2025-08-29 00:03:09,726 - INFO - Thread 1 finalizada
+2025-08-29 00:03:09,744 - INFO - Thread 8 finalizada
+2025-08-29 00:03:09,744 - INFO - Thread 7 finalizada
+2025-08-29 00:03:09,756 - INFO - Thread 4 finalizada
+2025-08-29 00:03:09,758 - INFO - Thread 6 finalizada
+2025-08-29 00:03:09,761 - INFO - Thread 3 finalizada
+2025-08-29 00:03:09,764 - INFO - Thread 2 finalizada
+2025-08-29 00:03:24,536 - INFO - === INICIANDO TESTE DE STRESS ===
+2025-08-29 00:03:24,537 - INFO - Conexões simultâneas: 10
+2025-08-29 00:03:24,537 - INFO - Duração: 60 segundos
+2025-08-29 00:03:24,537 - INFO - Intervalo entre queries: 0.1s
+2025-08-29 00:03:24,543 - INFO - Conexão bem-sucedida: PostgreSQL 16.1 (Debian 16.1-1.pgdg120+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14) 12.2.0, 64-bit
+2025-08-29 00:03:24,546 - INFO - Inserindo 1000 registros iniciais...
+2025-08-29 00:03:24,612 - INFO - Tabela de teste criada com sucesso
+2025-08-29 00:03:24,612 - INFO - Thread 0 iniciada
+2025-08-29 00:03:24,613 - INFO - Thread 1 iniciada
+2025-08-29 00:03:24,613 - INFO - Thread 2 iniciada
+2025-08-29 00:03:24,615 - INFO - Thread 3 iniciada
+2025-08-29 00:03:24,615 - INFO - Thread 5 iniciada
+2025-08-29 00:03:24,615 - INFO - Thread 4 iniciada
+2025-08-29 00:03:24,616 - INFO - Thread 6 iniciada
+2025-08-29 00:03:24,616 - INFO - Thread 7 iniciada
+2025-08-29 00:03:24,617 - INFO - Thread 8 iniciada
+2025-08-29 00:03:24,617 - INFO - Thread 9 iniciada
+2025-08-29 00:04:24,719 - INFO - Thread 7 finalizada
+2025-08-29 00:04:24,720 - INFO - Thread 5 finalizada
+2025-08-29 00:04:24,728 - INFO - Thread 8 finalizada
+2025-08-29 00:04:24,754 - INFO - Thread 1 finalizada
+2025-08-29 00:04:24,755 - INFO - Thread 2 finalizada
+2025-08-29 00:04:24,759 - INFO - Thread 0 finalizada
+2025-08-29 00:04:24,766 - INFO - Thread 9 finalizada
+2025-08-29 00:04:24,769 - INFO - Thread 3 finalizada
+2025-08-29 00:04:24,774 - INFO - Thread 6 finalizada
+2025-08-29 00:04:24,774 - INFO - Thread 4 finalizada
+2025-08-29 00:05:15,472 - INFO - === INICIANDO TESTE DE STRESS ===
+2025-08-29 00:05:15,472 - INFO - Conexões simultâneas: 10
+2025-08-29 00:05:15,472 - INFO - Duração: 6000 segundos
+2025-08-29 00:05:15,472 - INFO - Intervalo entre queries: 0.1s
+2025-08-29 00:05:15,479 - INFO - Conexão bem-sucedida: PostgreSQL 16.1 (Debian 16.1-1.pgdg120+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14) 12.2.0, 64-bit
+2025-08-29 00:05:15,482 - INFO - Inserindo 1000 registros iniciais...
+2025-08-29 00:05:15,545 - INFO - Tabela de teste criada com sucesso
+2025-08-29 00:05:15,545 - INFO - Thread 0 iniciada
+2025-08-29 00:05:15,546 - INFO - Thread 1 iniciada
+2025-08-29 00:05:15,546 - INFO - Thread 2 iniciada
+2025-08-29 00:05:15,546 - INFO - Thread 3 iniciada
+2025-08-29 00:05:15,546 - INFO - Thread 4 iniciada
+2025-08-29 00:05:15,547 - INFO - Thread 5 iniciada
+2025-08-29 00:05:15,549 - INFO - Thread 6 iniciada
+2025-08-29 00:05:15,550 - INFO - Thread 7 iniciada
+2025-08-29 00:05:15,550 - INFO - Thread 8 iniciada
+2025-08-29 00:05:15,551 - INFO - Thread 9 iniciada
+2025-08-29 00:07:22,527 - INFO - === INICIANDO TESTE DE STRESS ===
+2025-08-29 00:07:22,528 - INFO - Conexões simultâneas: 20
+2025-08-29 00:07:22,528 - INFO - Duração: 6000 segundos
+2025-08-29 00:07:22,528 - INFO - Intervalo entre queries: 0.1s
+2025-08-29 00:07:22,534 - INFO - Conexão bem-sucedida: PostgreSQL 16.1 (Debian 16.1-1.pgdg120+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14) 12.2.0, 64-bit
+2025-08-29 00:07:22,537 - INFO - Inserindo 10000 registros iniciais...
+2025-08-29 00:07:27,513 - INFO - Tabela de teste criada com sucesso
+2025-08-29 00:07:27,514 - INFO - Thread 0 iniciada
+2025-08-29 00:07:27,514 - INFO - Thread 1 iniciada
+2025-08-29 00:07:27,515 - INFO - Thread 2 iniciada
+2025-08-29 00:07:27,515 - INFO - Thread 3 iniciada
+2025-08-29 00:07:27,517 - INFO - Thread 4 iniciada
+2025-08-29 00:07:27,517 - INFO - Thread 5 iniciada
+2025-08-29 00:07:27,518 - INFO - Thread 6 iniciada
+2025-08-29 00:07:27,518 - INFO - Thread 7 iniciada
+2025-08-29 00:07:27,518 - INFO - Thread 8 iniciada
+2025-08-29 00:07:27,519 - INFO - Thread 9 iniciada
+2025-08-29 00:07:27,520 - INFO - Thread 10 iniciada
+2025-08-29 00:07:27,520 - INFO - Thread 11 iniciada
+2025-08-29 00:07:27,521 - INFO - Thread 12 iniciada
+2025-08-29 00:07:27,521 - INFO - Thread 13 iniciada
+2025-08-29 00:07:27,523 - INFO - Thread 14 iniciada
+2025-08-29 00:07:27,523 - INFO - Thread 15 iniciada
+2025-08-29 00:07:27,523 - INFO - Thread 16 iniciada
+2025-08-29 00:07:27,525 - INFO - Thread 17 iniciada
+2025-08-29 00:07:27,526 - INFO - Thread 18 iniciada
+2025-08-29 00:07:27,526 - INFO - Thread 19 iniciada
+2025-08-29 00:19:21,259 - INFO - === INICIANDO TESTE DE STRESS ===
+2025-08-29 00:19:21,259 - INFO - Conexões simultâneas: 20
+2025-08-29 00:19:21,260 - INFO - Duração: 6000 segundos
+2025-08-29 00:19:21,260 - INFO - Intervalo entre queries: 0.1s
+2025-08-29 00:19:21,465 - INFO - Conexão bem-sucedida: PostgreSQL 16.1 (Debian 16.1-1.pgdg120+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14) 12.2.0, 64-bit
+2025-08-29 00:19:21,632 - INFO - Inserindo 10000 registros iniciais...
+2025-08-29 00:19:44,922 - INFO - Tabela de teste criada com sucesso
+2025-08-29 00:19:44,922 - INFO - Thread 0 iniciada
+2025-08-29 00:19:44,922 - INFO - Thread 1 iniciada
+2025-08-29 00:19:44,922 - INFO - Thread 2 iniciada
+2025-08-29 00:19:44,923 - INFO - Thread 3 iniciada
+2025-08-29 00:19:44,923 - INFO - Thread 4 iniciada
+2025-08-29 00:19:44,924 - INFO - Thread 5 iniciada
+2025-08-29 00:19:44,924 - INFO - Thread 6 iniciada
+2025-08-29 00:19:44,924 - INFO - Thread 7 iniciada
+2025-08-29 00:19:44,926 - INFO - Thread 8 iniciada
+2025-08-29 00:19:44,927 - INFO - Thread 9 iniciada
+2025-08-29 00:19:44,927 - INFO - Thread 10 iniciada
+2025-08-29 00:19:44,927 - INFO - Thread 11 iniciada
+2025-08-29 00:19:44,928 - INFO - Thread 12 iniciada
+2025-08-29 00:19:44,928 - INFO - Thread 13 iniciada
+2025-08-29 00:19:44,929 - INFO - Thread 14 iniciada
+2025-08-29 00:19:44,931 - INFO - Thread 15 iniciada
+2025-08-29 00:19:44,931 - INFO - Thread 16 iniciada
+2025-08-29 00:19:44,932 - INFO - Thread 17 iniciada
+2025-08-29 00:19:44,933 - INFO - Thread 18 iniciada
+2025-08-29 00:19:44,933 - INFO - Thread 19 iniciada
+2025-08-29 00:20:49,929 - INFO - === INICIANDO TESTE DE STRESS ===
+2025-08-29 00:20:49,938 - INFO - Conexões simultâneas: 20
+2025-08-29 00:20:49,938 - INFO - Duração: 6000 segundos
+2025-08-29 00:20:49,938 - INFO - Intervalo entre queries: 0.1s
+2025-08-29 00:20:50,426 - INFO - Conexão bem-sucedida: PostgreSQL 16.1 (Debian 16.1-1.pgdg120+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14) 12.2.0, 64-bit
+2025-08-29 00:20:50,843 - INFO - Inserindo 10000 registros iniciais...
+2025-08-29 00:21:15,628 - INFO - Tabela de teste criada com sucesso
+2025-08-29 00:21:15,629 - INFO - Thread 0 iniciada
+2025-08-29 00:21:15,630 - INFO - Thread 1 iniciada
+2025-08-29 00:21:15,631 - INFO - Thread 2 iniciada
+2025-08-29 00:21:15,632 - INFO - Thread 3 iniciada
+2025-08-29 00:21:15,632 - INFO - Thread 4 iniciada
+2025-08-29 00:21:15,633 - INFO - Thread 5 iniciada
+2025-08-29 00:21:15,633 - INFO - Thread 6 iniciada
+2025-08-29 00:21:15,634 - INFO - Thread 7 iniciada
+2025-08-29 00:21:15,635 - INFO - Thread 8 iniciada
+2025-08-29 00:21:15,635 - INFO - Thread 9 iniciada
+2025-08-29 00:21:15,636 - INFO - Thread 10 iniciada
+2025-08-29 00:21:15,636 - INFO - Thread 11 iniciada
+2025-08-29 00:21:15,639 - INFO - Thread 12 iniciada
+2025-08-29 00:21:15,639 - INFO - Thread 13 iniciada
+2025-08-29 00:21:15,640 - INFO - Thread 14 iniciada
+2025-08-29 00:21:15,640 - INFO - Thread 15 iniciada
+2025-08-29 00:21:15,641 - INFO - Thread 16 iniciada
+2025-08-29 00:21:15,641 - INFO - Thread 17 iniciada
+2025-08-29 00:21:15,642 - INFO - Thread 18 iniciada
+2025-08-29 00:21:15,642 - INFO - Thread 19 iniciada
+2025-08-29 01:45:15,727 - INFO - Thread 3 finalizada
+2025-08-29 01:45:15,813 - INFO - Thread 7 finalizada
+2025-08-29 01:45:15,917 - INFO - Thread 2 finalizada
+2025-08-29 01:45:15,936 - INFO - Thread 4 finalizada
+2025-08-29 01:45:16,020 - INFO - Thread 0 finalizada
+2025-08-29 01:45:16,117 - INFO - Thread 9 finalizada
+2025-08-29 01:45:16,122 - INFO - Thread 8 finalizada
+2025-08-29 01:45:16,161 - INFO - Thread 5 finalizada
+2025-08-29 01:45:16,423 - INFO - Thread 6 finalizada
+2025-08-29 01:45:16,526 - INFO - Thread 1 finalizada
+2025-08-29 01:47:27,631 - INFO - Thread 11 finalizada
+2025-08-29 01:47:27,637 - INFO - Thread 6 finalizada
+2025-08-29 01:47:27,648 - INFO - Thread 17 finalizada
+2025-08-29 01:47:27,733 - INFO - Thread 10 finalizada
+2025-08-29 01:47:27,735 - INFO - Thread 13 finalizada
+2025-08-29 01:47:27,741 - INFO - Thread 14 finalizada
+2025-08-29 01:47:27,817 - INFO - Thread 4 finalizada
+2025-08-29 01:47:27,820 - INFO - Thread 15 finalizada
+2025-08-29 01:47:27,924 - INFO - Thread 18 finalizada
+2025-08-29 01:47:27,931 - INFO - Thread 8 finalizada
+2025-08-29 01:47:27,939 - INFO - Thread 9 finalizada
+2025-08-29 01:47:28,020 - INFO - Thread 16 finalizada
+2025-08-29 01:47:28,034 - INFO - Thread 19 finalizada
+2025-08-29 01:47:28,037 - INFO - Thread 5 finalizada
+2025-08-29 01:47:28,114 - INFO - Thread 1 finalizada
+2025-08-29 01:47:28,213 - INFO - Thread 2 finalizada
+2025-08-29 01:47:28,222 - INFO - Thread 7 finalizada
+2025-08-29 01:47:28,250 - INFO - Thread 0 finalizada
+2025-08-29 01:47:28,313 - INFO - Thread 3 finalizada
+2025-08-29 01:47:28,530 - INFO - Thread 12 finalizada
+2025-08-29 01:59:45,042 - INFO - Thread 2 finalizada
+2025-08-29 01:59:45,113 - INFO - Thread 7 finalizada
+2025-08-29 01:59:45,116 - INFO - Thread 0 finalizada
+2025-08-29 01:59:45,121 - INFO - Thread 10 finalizada
+2025-08-29 01:59:45,124 - INFO - Thread 4 finalizada
+2025-08-29 01:59:45,129 - INFO - Thread 19 finalizada
+2025-08-29 01:59:45,135 - INFO - Thread 11 finalizada
+2025-08-29 01:59:45,218 - INFO - Thread 17 finalizada
+2025-08-29 01:59:45,220 - INFO - Thread 12 finalizada
+2025-08-29 01:59:45,222 - INFO - Thread 3 finalizada
+2025-08-29 01:59:45,238 - INFO - Thread 14 finalizada
+2025-08-29 01:59:45,244 - INFO - Thread 9 finalizada
+2025-08-29 01:59:45,416 - INFO - Thread 6 finalizada
+2025-08-29 01:59:45,425 - INFO - Thread 15 finalizada
+2025-08-29 01:59:45,429 - INFO - Thread 18 finalizada
+2025-08-29 01:59:45,435 - INFO - Thread 8 finalizada
+2025-08-29 01:59:45,436 - INFO - Thread 5 finalizada
+2025-08-29 01:59:45,521 - INFO - Thread 1 finalizada
+2025-08-29 01:59:45,615 - INFO - Thread 16 finalizada
+2025-08-29 01:59:45,621 - INFO - Thread 13 finalizada
+2025-08-29 02:01:15,752 - INFO - Thread 17 finalizada
+2025-08-29 02:01:15,752 - INFO - Thread 14 finalizada
+2025-08-29 02:01:15,753 - INFO - Thread 8 finalizada
+2025-08-29 02:01:15,813 - INFO - Thread 10 finalizada
+2025-08-29 02:01:15,815 - INFO - Thread 12 finalizada
+2025-08-29 02:01:15,818 - INFO - Thread 13 finalizada
+2025-08-29 02:01:15,820 - INFO - Thread 0 finalizada
+2025-08-29 02:01:15,823 - INFO - Thread 5 finalizada
+2025-08-29 02:01:15,824 - INFO - Thread 7 finalizada
+2025-08-29 02:01:15,830 - INFO - Thread 1 finalizada
+2025-08-29 02:01:15,831 - INFO - Thread 19 finalizada
+2025-08-29 02:01:15,834 - INFO - Thread 9 finalizada
+2025-08-29 02:01:15,840 - INFO - Thread 18 finalizada
+2025-08-29 02:01:15,843 - INFO - Thread 15 finalizada
+2025-08-29 02:01:15,844 - INFO - Thread 2 finalizada
+2025-08-29 02:01:15,852 - INFO - Thread 11 finalizada
+2025-08-29 02:01:15,916 - INFO - Thread 4 finalizada
+2025-08-29 02:01:15,922 - INFO - Thread 3 finalizada
+2025-08-29 02:01:15,924 - INFO - Thread 6 finalizada
+2025-08-29 02:01:15,931 - INFO - Thread 16 finalizada
+2025-08-29 09:17:09,628 - INFO - === INICIANDO TESTE DE STRESS ===
+2025-08-29 09:17:09,629 - INFO - Conexões simultâneas: 20
+2025-08-29 09:17:09,629 - INFO - Duração: 6000 segundos
+2025-08-29 09:17:09,629 - INFO - Intervalo entre queries: 0.1s
+2025-08-29 09:17:09,640 - INFO - Conexão bem-sucedida: PostgreSQL 16.1 (Debian 16.1-1.pgdg120+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14) 12.2.0, 64-bit
+2025-08-29 09:17:09,651 - INFO - Inserindo 10000 registros iniciais...
+2025-08-29 09:17:10,716 - INFO - Tabela de teste criada com sucesso
+2025-08-29 09:17:10,717 - INFO - Thread 0 iniciada
+2025-08-29 09:17:10,717 - INFO - Thread 1 iniciada
+2025-08-29 09:17:10,718 - INFO - Thread 2 iniciada
+2025-08-29 09:17:10,718 - INFO - Thread 3 iniciada
+2025-08-29 09:17:10,719 - INFO - Thread 4 iniciada
+2025-08-29 09:17:10,719 - INFO - Thread 5 iniciada
+2025-08-29 09:17:10,721 - INFO - Thread 6 iniciada
+2025-08-29 09:17:10,721 - INFO - Thread 7 iniciada
+2025-08-29 09:17:10,722 - INFO - Thread 8 iniciada
+2025-08-29 09:17:10,722 - INFO - Thread 9 iniciada
+2025-08-29 09:17:10,723 - INFO - Thread 10 iniciada
+2025-08-29 09:17:10,724 - INFO - Thread 11 iniciada
+2025-08-29 09:17:10,724 - INFO - Thread 12 iniciada
+2025-08-29 09:17:10,725 - INFO - Thread 13 iniciada
+2025-08-29 09:17:10,725 - INFO - Thread 14 iniciada
+2025-08-29 09:17:10,725 - INFO - Thread 15 iniciada
+2025-08-29 09:17:10,726 - INFO - Thread 16 iniciada
+2025-08-29 09:17:10,726 - INFO - Thread 17 iniciada
+2025-08-29 09:17:10,726 - INFO - Thread 18 iniciada
+2025-08-29 09:17:10,727 - INFO - Thread 19 iniciada
+2025-08-29 09:36:03,944 - INFO - === INICIANDO TESTE DE STRESS ===
+2025-08-29 09:36:03,948 - INFO - Conexões simultâneas: 20
+2025-08-29 09:36:03,948 - INFO - Duração: 6000 segundos
+2025-08-29 09:36:03,948 - INFO - Intervalo entre queries: 0.1s
+2025-08-29 09:36:04,115 - INFO - Conexão bem-sucedida: PostgreSQL 16.1 (Debian 16.1-1.pgdg120+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14) 12.2.0, 64-bit
+2025-08-29 09:36:04,216 - INFO - Inserindo 10000 registros iniciais...
+2025-08-29 09:36:25,013 - INFO - Tabela de teste criada com sucesso
+2025-08-29 09:36:25,014 - INFO - Thread 0 iniciada
+2025-08-29 09:36:25,014 - INFO - Thread 1 iniciada
+2025-08-29 09:36:25,015 - INFO - Thread 2 iniciada
+2025-08-29 09:36:25,015 - INFO - Thread 3 iniciada
+2025-08-29 09:36:25,015 - INFO - Thread 4 iniciada
+2025-08-29 09:36:25,023 - INFO - Thread 5 iniciada
+2025-08-29 09:36:25,024 - INFO - Thread 6 iniciada
+2025-08-29 09:36:25,024 - INFO - Thread 7 iniciada
+2025-08-29 09:36:25,025 - INFO - Thread 8 iniciada
+2025-08-29 09:36:25,025 - INFO - Thread 9 iniciada
+2025-08-29 09:36:25,025 - INFO - Thread 10 iniciada
+2025-08-29 09:36:25,026 - INFO - Thread 11 iniciada
+2025-08-29 09:36:25,027 - INFO - Thread 12 iniciada
+2025-08-29 09:36:25,027 - INFO - Thread 13 iniciada
+2025-08-29 09:36:25,029 - INFO - Thread 14 iniciada
+2025-08-29 09:36:25,030 - INFO - Thread 15 iniciada
+2025-08-29 09:36:25,035 - INFO - Thread 16 iniciada
+2025-08-29 09:36:25,035 - INFO - Thread 17 iniciada
+2025-08-29 09:36:25,035 - INFO - Thread 18 iniciada
+2025-08-29 09:36:25,036 - INFO - Thread 19 iniciada
+2025-08-29 10:57:10,830 - INFO - Thread 17 finalizada
+2025-08-29 10:57:10,833 - INFO - Thread 10 finalizada
+2025-08-29 10:57:10,834 - INFO - Thread 18 finalizada
+2025-08-29 10:57:10,923 - INFO - Thread 5 finalizada
+2025-08-29 10:57:10,948 - INFO - Thread 4 finalizada
+2025-08-29 10:57:11,027 - INFO - Thread 6 finalizada
+2025-08-29 10:57:11,125 - INFO - Thread 11 finalizada
+2025-08-29 10:57:11,130 - INFO - Thread 13 finalizada
+2025-08-29 10:57:11,131 - INFO - Thread 3 finalizada
+2025-08-29 10:57:11,138 - INFO - Thread 19 finalizada
+2025-08-29 10:57:11,222 - INFO - Thread 14 finalizada
+2025-08-29 10:57:11,227 - INFO - Thread 16 finalizada
+2025-08-29 10:57:11,228 - INFO - Thread 2 finalizada
+2025-08-29 10:57:11,235 - INFO - Thread 1 finalizada
+2025-08-29 10:57:11,245 - INFO - Thread 7 finalizada
+2025-08-29 10:57:11,315 - INFO - Thread 15 finalizada
+2025-08-29 10:57:11,316 - INFO - Thread 12 finalizada
+2025-08-29 10:57:11,416 - INFO - Thread 8 finalizada
+2025-08-29 10:57:11,438 - INFO - Thread 0 finalizada
+2025-08-29 10:57:11,445 - INFO - Thread 9 finalizada
+2025-08-29 11:16:25,144 - INFO - Thread 0 finalizada
+2025-08-29 11:16:25,146 - INFO - Thread 11 finalizada
+2025-08-29 11:16:25,147 - INFO - Thread 12 finalizada
+2025-08-29 11:16:25,149 - INFO - Thread 13 finalizada
+2025-08-29 11:16:25,220 - INFO - Thread 9 finalizada
+2025-08-29 11:16:25,231 - INFO - Thread 5 finalizada
+2025-08-29 11:16:25,237 - INFO - Thread 17 finalizada
+2025-08-29 11:16:25,239 - INFO - Thread 18 finalizada
+2025-08-29 11:16:25,247 - INFO - Thread 14 finalizada
+2025-08-29 11:16:25,312 - INFO - Thread 7 finalizada
+2025-08-29 11:16:25,313 - INFO - Thread 2 finalizada
+2025-08-29 11:16:25,321 - INFO - Thread 16 finalizada
+2025-08-29 11:16:25,335 - INFO - Thread 8 finalizada
+2025-08-29 11:16:25,339 - INFO - Thread 3 finalizada
+2025-08-29 11:16:25,341 - INFO - Thread 6 finalizada
+2025-08-29 11:16:25,341 - INFO - Thread 1 finalizada
+2025-08-29 11:16:25,342 - INFO - Thread 4 finalizada
+2025-08-29 11:16:25,363 - INFO - Thread 15 finalizada
+2025-08-29 11:16:25,370 - INFO - Thread 10 finalizada
+2025-08-29 11:16:25,370 - INFO - Thread 19 finalizada
