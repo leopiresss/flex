@@ -346,3 +346,57 @@
 2025-08-29 11:16:25,363 - INFO - Thread 15 finalizada
 2025-08-29 11:16:25,370 - INFO - Thread 10 finalizada
 2025-08-29 11:16:25,370 - INFO - Thread 19 finalizada
+2025-09-03 01:02:39,344 - INFO - === INICIANDO TESTE DE STRESS ===
+2025-09-03 01:02:39,344 - INFO - Conexões simultâneas: 20
+2025-09-03 01:02:39,344 - INFO - Duração: 6000 segundos
+2025-09-03 01:02:39,344 - INFO - Intervalo entre queries: 0.1s
+2025-09-03 01:02:39,363 - INFO - Conexão bem-sucedida: PostgreSQL 16.1 (Debian 16.1-1.pgdg120+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14) 12.2.0, 64-bit
+2025-09-03 01:02:39,369 - INFO - Inserindo 10000 registros iniciais...
+2025-09-03 01:02:40,209 - INFO - Tabela de teste criada com sucesso
+2025-09-03 01:02:40,210 - INFO - Thread 0 iniciada
+2025-09-03 01:02:40,210 - INFO - Thread 1 iniciada
+2025-09-03 01:02:40,210 - INFO - Thread 2 iniciada
+2025-09-03 01:02:40,211 - INFO - Thread 3 iniciada
+2025-09-03 01:02:40,213 - INFO - Thread 4 iniciada
+2025-09-03 01:02:40,213 - INFO - Thread 5 iniciada
+2025-09-03 01:02:40,214 - INFO - Thread 6 iniciada
+2025-09-03 01:02:40,214 - INFO - Thread 7 iniciada
+2025-09-03 01:02:40,215 - INFO - Thread 8 iniciada
+2025-09-03 01:02:40,215 - INFO - Thread 9 iniciada
+2025-09-03 01:02:40,215 - INFO - Thread 10 iniciada
+2025-09-03 01:02:40,216 - INFO - Thread 11 iniciada
+2025-09-03 01:02:40,216 - INFO - Thread 12 iniciada
+2025-09-03 01:02:40,216 - INFO - Thread 13 iniciada
+2025-09-03 01:02:40,219 - INFO - Thread 14 iniciada
+2025-09-03 01:02:40,219 - INFO - Thread 15 iniciada
+2025-09-03 01:02:40,219 - INFO - Thread 16 iniciada
+2025-09-03 01:02:40,220 - INFO - Thread 17 iniciada
+2025-09-03 01:02:40,220 - INFO - Thread 18 iniciada
+2025-09-03 01:02:40,223 - INFO - Thread 19 iniciada
+2025-09-03 01:35:31,102 - INFO - === INICIANDO TESTE DE STRESS ===
+2025-09-03 01:35:31,102 - INFO - Conexões simultâneas: 20
+2025-09-03 01:35:31,102 - INFO - Duração: 6000 segundos
+2025-09-03 01:35:31,102 - INFO - Intervalo entre queries: 0.1s
+2025-09-03 01:35:31,114 - INFO - Conexão bem-sucedida: PostgreSQL 16.1 (Debian 16.1-1.pgdg120+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14) 12.2.0, 64-bit
+2025-09-03 01:35:31,194 - INFO - Inserindo 10000 registros iniciais...
+2025-09-03 01:35:33,224 - INFO - Tabela de teste criada com sucesso
+2025-09-03 01:35:33,225 - INFO - Thread 0 iniciada
+2025-09-03 01:35:33,225 - INFO - Thread 1 iniciada
+2025-09-03 01:35:33,225 - INFO - Thread 2 iniciada
+2025-09-03 01:35:33,227 - INFO - Thread 3 iniciada
+2025-09-03 01:35:33,227 - INFO - Thread 4 iniciada
+2025-09-03 01:35:33,228 - INFO - Thread 5 iniciada
+2025-09-03 01:35:33,228 - INFO - Thread 6 iniciada
+2025-09-03 01:35:33,228 - INFO - Thread 7 iniciada
+2025-09-03 01:35:33,228 - INFO - Thread 8 iniciada
+2025-09-03 01:35:33,229 - INFO - Thread 9 iniciada
+2025-09-03 01:35:33,229 - INFO - Thread 10 iniciada
+2025-09-03 01:35:33,229 - INFO - Thread 11 iniciada
+2025-09-03 01:35:33,229 - INFO - Thread 12 iniciada
+2025-09-03 01:35:33,230 - INFO - Thread 13 iniciada
+2025-09-03 01:35:33,231 - INFO - Thread 14 iniciada
+2025-09-03 01:35:33,231 - INFO - Thread 15 iniciada
+2025-09-03 01:35:33,231 - INFO - Thread 16 iniciada
+2025-09-03 01:35:33,231 - INFO - Thread 17 iniciada
+2025-09-03 01:35:33,231 - INFO - Thread 18 iniciada
+2025-09-03 01:35:33,232 - INFO - Thread 19 iniciada

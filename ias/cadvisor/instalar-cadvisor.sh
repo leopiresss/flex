@@ -37,9 +37,6 @@ NODE_IP=$(microk8s kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(
 echo "Testando API v1.3..."
 curl -s "http://$NODE_IP:8080/api/v1.3/version" || echo "❌ Falha na conectividade"
 
-echo "📊 Testando métricas de containers..."
-curl -s "http://$NODE_IP:8080/api/v1.3/containers" | head -10 || echo "❌ Falha ao obter containers"
-
 echo "🎉 Instalação concluída!"
 echo "Acesse: http://$NODE_IP:8080 para interface web"
 echo "API v1.3: http://$NODE_IP:8080/api/v1.3/"
