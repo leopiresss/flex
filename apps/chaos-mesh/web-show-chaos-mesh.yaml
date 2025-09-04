@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: chaos-mesh
+  name: web-show
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-show
+  template:
+    metadata:
+      labels:
+        app: web-show
+    spec:
+      containers:
+      - name: web-show
+        image: ghcr.io/chaos-mesh/web-show:latest
+        ports:
+        - containerPort: 8081

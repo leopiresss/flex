@@ -400,3 +400,131 @@
 2025-09-03 01:35:33,231 - INFO - Thread 17 iniciada
 2025-09-03 01:35:33,231 - INFO - Thread 18 iniciada
 2025-09-03 01:35:33,232 - INFO - Thread 19 iniciada
+2025-09-03 03:15:33,395 - INFO - Thread 3 finalizada
+2025-09-03 03:15:33,399 - INFO - Thread 6 finalizada
+2025-09-03 03:15:33,408 - INFO - Thread 17 finalizada
+2025-09-03 03:15:33,412 - INFO - Thread 15 finalizada
+2025-09-03 03:15:33,415 - INFO - Thread 18 finalizada
+2025-09-03 03:15:33,501 - INFO - Thread 9 finalizada
+2025-09-03 03:15:33,509 - INFO - Thread 8 finalizada
+2025-09-03 03:15:33,513 - INFO - Thread 13 finalizada
+2025-09-03 03:15:33,513 - INFO - Thread 12 finalizada
+2025-09-03 03:15:33,595 - INFO - Thread 5 finalizada
+2025-09-03 03:15:33,599 - INFO - Thread 19 finalizada
+2025-09-03 03:15:33,601 - INFO - Thread 7 finalizada
+2025-09-03 03:15:33,602 - INFO - Thread 0 finalizada
+2025-09-03 03:15:33,608 - INFO - Thread 4 finalizada
+2025-09-03 03:15:33,615 - INFO - Thread 2 finalizada
+2025-09-03 03:15:33,692 - INFO - Thread 10 finalizada
+2025-09-03 03:15:33,693 - INFO - Thread 14 finalizada
+2025-09-03 03:15:33,700 - INFO - Thread 16 finalizada
+2025-09-03 03:15:33,704 - INFO - Thread 1 finalizada
+2025-09-03 03:15:33,708 - INFO - Thread 11 finalizada
+2025-09-04 11:39:11,118 - INFO - === INICIANDO TESTE DE STRESS ===
+2025-09-04 11:39:11,118 - INFO - Conexões simultâneas: 20
+2025-09-04 11:39:11,119 - INFO - Duração: 6000 segundos
+2025-09-04 11:39:11,119 - INFO - Intervalo entre queries: 0.1s
+2025-09-04 11:39:11,226 - INFO - Conexão bem-sucedida: PostgreSQL 16.1 (Debian 16.1-1.pgdg120+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14) 12.2.0, 64-bit
+2025-09-04 11:39:11,293 - INFO - Inserindo 10000 registros iniciais...
+2025-09-04 11:39:12,595 - INFO - Tabela de teste criada com sucesso
+2025-09-04 11:39:12,595 - INFO - Thread 0 iniciada
+2025-09-04 11:39:12,596 - INFO - Thread 1 iniciada
+2025-09-04 11:39:12,596 - INFO - Thread 2 iniciada
+2025-09-04 11:39:12,597 - INFO - Thread 3 iniciada
+2025-09-04 11:39:12,597 - INFO - Thread 4 iniciada
+2025-09-04 11:39:12,597 - INFO - Thread 5 iniciada
+2025-09-04 11:39:12,598 - INFO - Thread 6 iniciada
+2025-09-04 11:39:12,599 - INFO - Thread 7 iniciada
+2025-09-04 11:39:12,599 - INFO - Thread 8 iniciada
+2025-09-04 11:39:12,600 - INFO - Thread 9 iniciada
+2025-09-04 11:39:12,600 - INFO - Thread 10 iniciada
+2025-09-04 11:39:12,601 - INFO - Thread 11 iniciada
+2025-09-04 11:39:12,601 - INFO - Thread 12 iniciada
+2025-09-04 11:39:12,601 - INFO - Thread 13 iniciada
+2025-09-04 11:39:12,602 - INFO - Thread 14 iniciada
+2025-09-04 11:39:12,603 - INFO - Thread 15 iniciada
+2025-09-04 11:39:12,603 - INFO - Thread 16 iniciada
+2025-09-04 11:39:12,604 - INFO - Thread 17 iniciada
+2025-09-04 11:39:12,604 - INFO - Thread 18 iniciada
+2025-09-04 11:39:12,604 - INFO - Thread 19 iniciada
+2025-09-04 12:30:18,170 - INFO - === INICIANDO TESTE DE STRESS ===
+2025-09-04 12:30:18,170 - INFO - Conexões simultâneas: 10
+2025-09-04 12:30:18,170 - INFO - Duração: 60 segundos
+2025-09-04 12:30:18,170 - INFO - Intervalo entre queries: 0.1s
+2025-09-04 12:30:18,175 - INFO - Conexão bem-sucedida: PostgreSQL 16.1 (Debian 16.1-1.pgdg120+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14) 12.2.0, 64-bit
+2025-09-04 12:30:18,179 - INFO - Inserindo 10000 registros iniciais...
+2025-09-04 12:30:19,558 - INFO - Tabela de teste criada com sucesso
+2025-09-04 12:30:19,559 - INFO - Thread 0 iniciada
+2025-09-04 12:30:19,559 - INFO - Thread 1 iniciada
+2025-09-04 12:30:19,561 - INFO - Thread 2 iniciada
+2025-09-04 12:30:19,561 - INFO - Thread 3 iniciada
+2025-09-04 12:30:19,564 - INFO - Thread 4 iniciada
+2025-09-04 12:30:19,564 - INFO - Thread 5 iniciada
+2025-09-04 12:30:19,564 - INFO - Thread 6 iniciada
+2025-09-04 12:30:19,564 - INFO - Thread 7 iniciada
+2025-09-04 12:30:19,566 - INFO - Thread 8 iniciada
+2025-09-04 12:30:19,571 - INFO - Thread 9 iniciada
+2025-09-04 12:31:19,692 - INFO - Thread 6 finalizada
+2025-09-04 12:31:19,693 - INFO - Thread 3 finalizada
+2025-09-04 12:31:19,694 - INFO - Thread 2 finalizada
+2025-09-04 12:31:19,708 - INFO - Thread 0 finalizada
+2025-09-04 12:31:19,802 - INFO - Thread 1 finalizada
+2025-09-04 12:31:19,802 - INFO - Thread 4 finalizada
+2025-09-04 12:31:19,807 - INFO - Thread 5 finalizada
+2025-09-04 12:31:19,807 - INFO - Thread 8 finalizada
+2025-09-04 12:31:19,812 - INFO - Thread 9 finalizada
+2025-09-04 12:31:19,815 - INFO - Thread 7 finalizada
+2025-09-04 12:47:58,069 - INFO - === INICIANDO TESTE DE STRESS ===
+2025-09-04 12:47:58,069 - INFO - Conexões simultâneas: 10
+2025-09-04 12:47:58,069 - INFO - Duração: 60 segundos
+2025-09-04 12:47:58,069 - INFO - Intervalo entre queries: 0.1s
+2025-09-04 12:47:58,074 - INFO - Conexão bem-sucedida: PostgreSQL 16.1 (Debian 16.1-1.pgdg120+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14) 12.2.0, 64-bit
+2025-09-04 12:47:58,078 - INFO - Inserindo 10000 registros iniciais...
+2025-09-04 12:47:59,166 - INFO - Tabela de teste criada com sucesso
+2025-09-04 12:47:59,167 - INFO - Thread 0 iniciada
+2025-09-04 12:47:59,167 - INFO - Thread 1 iniciada
+2025-09-04 12:47:59,168 - INFO - Thread 2 iniciada
+2025-09-04 12:47:59,168 - INFO - Thread 3 iniciada
+2025-09-04 12:47:59,168 - INFO - Thread 4 iniciada
+2025-09-04 12:47:59,169 - INFO - Thread 5 iniciada
+2025-09-04 12:47:59,170 - INFO - Thread 6 iniciada
+2025-09-04 12:47:59,170 - INFO - Thread 7 iniciada
+2025-09-04 12:47:59,170 - INFO - Thread 8 iniciada
+2025-09-04 12:47:59,171 - INFO - Thread 9 iniciada
+2025-09-04 12:48:59,296 - INFO - Thread 6 finalizada
+2025-09-04 12:48:59,296 - INFO - Thread 8 finalizada
+2025-09-04 12:48:59,296 - INFO - Thread 9 finalizada
+2025-09-04 12:48:59,305 - INFO - Thread 4 finalizada
+2025-09-04 12:48:59,309 - INFO - Thread 5 finalizada
+2025-09-04 12:48:59,312 - INFO - Thread 3 finalizada
+2025-09-04 12:48:59,319 - INFO - Thread 0 finalizada
+2025-09-04 12:48:59,401 - INFO - Thread 1 finalizada
+2025-09-04 12:48:59,405 - INFO - Thread 2 finalizada
+2025-09-04 12:48:59,409 - INFO - Thread 7 finalizada
+2025-09-04 12:50:46,723 - INFO - === INICIANDO TESTE DE STRESS ===
+2025-09-04 12:50:46,723 - INFO - Conexões simultâneas: 10
+2025-09-04 12:50:46,723 - INFO - Duração: 60 segundos
+2025-09-04 12:50:46,723 - INFO - Intervalo entre queries: 0.1s
+2025-09-04 12:50:46,727 - INFO - Conexão bem-sucedida: PostgreSQL 16.1 (Debian 16.1-1.pgdg120+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14) 12.2.0, 64-bit
+2025-09-04 12:50:46,731 - INFO - Inserindo 10000 registros iniciais...
+2025-09-04 12:50:47,453 - INFO - Tabela de teste criada com sucesso
+2025-09-04 12:50:47,453 - INFO - Thread 0 iniciada
+2025-09-04 12:50:47,454 - INFO - Thread 1 iniciada
+2025-09-04 12:50:47,454 - INFO - Thread 2 iniciada
+2025-09-04 12:50:47,454 - INFO - Thread 3 iniciada
+2025-09-04 12:50:47,455 - INFO - Thread 4 iniciada
+2025-09-04 12:50:47,455 - INFO - Thread 5 iniciada
+2025-09-04 12:50:47,455 - INFO - Thread 6 iniciada
+2025-09-04 12:50:47,457 - INFO - Thread 7 iniciada
+2025-09-04 12:50:47,457 - INFO - Thread 8 iniciada
+2025-09-04 12:50:47,457 - INFO - Thread 9 iniciada
+2025-09-04 12:51:47,594 - INFO - Thread 9 finalizada
+2025-09-04 12:51:47,594 - INFO - Thread 3 finalizada
+2025-09-04 12:51:47,595 - INFO - Thread 2 finalizada
+2025-09-04 12:51:47,596 - INFO - Thread 7 finalizada
+2025-09-04 12:51:47,605 - INFO - Thread 5 finalizada
+2025-09-04 12:51:47,609 - INFO - Thread 8 finalizada
+2025-09-04 12:51:47,614 - INFO - Thread 6 finalizada
+2025-09-04 12:51:47,701 - INFO - Thread 1 finalizada
+2025-09-04 12:51:47,706 - INFO - Thread 0 finalizada
+2025-09-04 12:51:47,715 - INFO - Thread 4 finalizada
