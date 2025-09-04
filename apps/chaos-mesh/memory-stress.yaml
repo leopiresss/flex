@@ -12,5 +12,5 @@ spec:
       app: postgres
   stressors:
     memory:
-      workers: 4
-      size: '256MB'
+      workers: 8
+      size: '8560MB'
