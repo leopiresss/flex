@@ -1,4 +1,7 @@
 #!/bin/bash
+#instalando port-forward do cAdvisor
+source ~/flex/lib/port-lib.sh 
+
 
 echo "🚀 Instalando cAdvisor v1.3 no MicroK8s"
 
@@ -30,13 +33,33 @@ echo "✅ Status dos pods cAdvisor:"
 microk8s kubectl get pods -n monitoring -l app=cadvisor -o wide
 
 
-# Testar conectividade
-echo "🔧 Testando conectividade..."
-NODE_IP=$(microk8s kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
 
-echo "Testando API v1.3..."
-curl -s "http://$NODE_IP:8080/api/v1.3/version" || echo "❌ Falha na conectividade"
 
-echo "🎉 Instalação concluída!"
-echo "Acesse: http://$NODE_IP:8080 para interface web"
-echo "API v1.3: http://$NODE_IP:8080/api/v1.3/"
+echo "✅ Instalado conectividade do cAdvisor"
+# Parâmetros para chamar a função
+RESOURCE_TYPE="svc"
+RESOURCE_NAME="cadvisor-service"
+NAMESPACE="monitoring"
+LOCAL_PORT="8080"
+REMOTE_PORT="8080"
+LOCAL_INTERFACE="0.0.0.0"
+PID_FILE="/tmp/cadivisor-pf.pid"
+NET_IFACE="ens33"
+RESOURCE_NOME_SISTEMA="CADVISOR"
+
+
+# Chama a função principal da biblioteca, passando os argumentos necessários
+executar_port_forward \
+    "$RESOURCE_TYPE" \
+    "$RESOURCE_NAME" \
+    "$NAMESPACE" \
+    "$LOCAL_PORT" \
+    "$REMOTE_PORT" \
+    "$LOCAL_INTERFACE" \
+    "$PID_FILE" \
+    "$NET_IFACE" \
+    "$RESOURCE_NOME_SISTEMA"
+
+
+
+

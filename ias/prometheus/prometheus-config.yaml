@@ -49,3 +49,23 @@ data:
             regex: (.+)
             target_label: __metrics_path__
             replacement: /metrics/cadvisor
+
+      - job_name: 'cadvisor'
+        scrape_interval: 15s
+        metrics_path: /metrics
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_pod_container_name]
+            target_label: container
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          # - source_labels: [__meta_kubernetes_pod_container_port_name]  # descomente se quiser filtrar por porta
+          #   regex: cadvisor
+          #   action: keep

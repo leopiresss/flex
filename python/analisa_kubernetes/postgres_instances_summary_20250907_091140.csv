@@ -1,0 +1,4 @@
+,,memory_mb,memory_mb,memory_mb,memory_mb,memory_mb,pod_name,namespace,node
+,,min,max,mean,std,count,first,first,first
+instance,container,,,,,,,,
+x86,postgres,61.69,65.96,64.75,1.71,61,postgres-deployment-76d6f4778d-ccs8g,stress-app,N/A

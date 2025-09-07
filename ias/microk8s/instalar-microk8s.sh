@@ -116,6 +116,11 @@ generate_token() {
     return 0
 }
 
+
+
+
+
+
 # Função para iniciar port-forward
 start_port_forward() {
     print_status "Verificando se port-forward já está ativo..."
