@@ -55,6 +55,16 @@ kubectl delete -f prometheus-autenticacao.yaml -n monitoring --ignore-not-found=
 echo "⚠️ - Removendo configuração do Prometheus..."
 kubectl delete -f prometheus-config.yaml -n monitoring --ignore-not-found=true
 
+echo " ⚠️ -  Removendo configuração do RBAC State Metrics..."
+kubectl delete -f ksm-rbac.yaml
+
+echo " ⚠️ -  Removendo deployment do Kube Satate Metric..."
+kubectl delete -f prometheus-kube-sate-metric-deployment.yaml
+
+echo " ⚠️ -  Removendo service do Kube State Metric..."
+kubectl delete -f prometheus-kube-sate-metric-service.yaml
+
+
 echo "⚠️ - Verificando recursos restantes no namespace monitoring..."
 kubectl get all -n monitoring
 
@@ -74,16 +84,16 @@ if [ "$PODS_RUNNING" -gt 0 ]; then
     kubectl delete pods --all -n monitoring --force --grace-period=0 --ignore-not-found=true
 fi
 
-echo "⚠️ - Removendo namespace monitoring..."
-kubectl delete namespace monitoring --ignore-not-found=true
+#echo "⚠️ - Removendo namespace monitoring..."
+#kubectl delete namespace monitoring --ignore-not-found=true
 
-echo "⚠️ - Verificando se namespace foi removido..."
-if kubectl get namespace monitoring &>/dev/null; then
-    echo "❌ Namespace ainda existe, aguardando..."
-    kubectl get namespace monitoring
-else
-    echo "✅ Namespace removido com sucesso"
-fi
+#echo "⚠️ - Verificando se namespace foi removido..."
+#if kubectl get namespace monitoring &>/dev/null; then
+#    echo "❌ Namespace ainda existe, aguardando..."
+#    kubectl get namespace monitoring
+#else
+#    echo "✅ Namespace removido com sucesso"
+#fi
 
 echo "⚠️ - Limpando arquivos PID restantes..."
 rm -f /tmp/cadivisor-pf.pid

@@ -32,6 +32,20 @@ kubectl apply -f alertmanager-statefulset.yaml -n monitoring
 echo " ⚠️ -  Aplicando ConfigMap do Alertmanager..."
 kubectl apply -f configmap-alertmanager.yaml -n monitoring
 
+echo " ⚠️ -  Instalando configuração do RBAC State Metrics..."
+kubectl apply -f ksm-rbac.yaml
+
+echo " ⚠️ -  Instalando deployment do Kube Satate Metric..."
+kubectl apply -f prometheus-kube-sate-metric-deployment.yaml
+
+echo " ⚠️ -  Aguardando pods do Prometheus ficarem prontos..."
+microk8s kubectl wait --for=condition=ready pod -l app=kube-sate-metric-deployment -n monitoring --timeout=500s
+
+
+echo " ⚠️ -  Instalando deploymento do Kube Satate Metric Service..."
+kubectl apply -f prometheus-kube-sate-metric-service.yaml
+
+
 echo " ⚠️ -  Aplicando service do Prometheus (segunda vez)..."
 kubectl apply -f prometheus-service.yaml -n monitoring
 
@@ -41,8 +55,13 @@ kubectl get pods -n monitoring
 echo " ⚠️ -  Verificando serviços no namespace monitoring..."
 kubectl get svc -n monitoring
 
+
+
 echo " ⚠️ -  Aguardando pods do Prometheus ficarem prontos..."
 microk8s kubectl wait --for=condition=ready pod -l app=prometheus -n monitoring --timeout=500s
+
+
+
 
 # kubectl port-forward --address 0.0.0.0 svc/prometheus-service 9090:9090 -n monitoring &
 

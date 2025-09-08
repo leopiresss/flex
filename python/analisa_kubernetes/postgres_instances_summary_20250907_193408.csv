@@ -1,4 +1,0 @@
-,,memory_mb,memory_mb,memory_mb,memory_mb,memory_mb,pod_name,namespace,node
-,,min,max,mean,std,count,first,first,first
-instance,container,,,,,,,,
-x86,postgres,52.98,52.98,52.98,0.0,61,postgres-deployment-76f656b68c-p46kq,stress-app,N/A

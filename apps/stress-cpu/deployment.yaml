@@ -20,14 +20,14 @@ spec:
         image: cpu-stress:latest
         imagePullPolicy: Never  # Para imagens locais no microk8s
         command: ["python3", "stress_cpu.py"]
-        args: ["-d", "300", "-i", "80"]  # 5 minutos, 80% intensidade
+        args: ["-d", "300", "-i", "100"]  # 5 minutos, 80% intensidade
         resources:
           requests:
             cpu: "100m"
-            memory: "64Mi"
+            memory: "12Mi"
           limits:
             cpu: "2000m"  # 2 cores máximo
-            memory: "128Mi"
+            memory: "24Mi"
         env:
         - name: PYTHONUNBUFFERED
           value: "1"

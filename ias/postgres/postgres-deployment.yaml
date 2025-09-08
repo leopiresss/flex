@@ -44,11 +44,11 @@ spec:
         resources:
           requests:
             # memory: "256Mi"
-            memory: "90Mi"
+            memory: "100Mi"
             cpu: "250m"
           limits:
             # memory: "512Mi"
-            memory: "90Mi"
+            memory: "100Mi"
             cpu: "500m"
       volumes:
       - name: postgres-storage
