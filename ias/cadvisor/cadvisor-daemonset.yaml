@@ -45,9 +45,10 @@ spec:
             readOnly: true
         ports:
         - name: http
-          containerPort: 8080
+          containerPort: 8070
           protocol: TCP
         args:
+          - --port=8070   
           - --housekeeping_interval=30s
           - --max_housekeeping_interval=35s
           - --event_storage_event_limit=default=0
@@ -60,13 +61,13 @@ spec:
         livenessProbe:
           httpGet:
             path: /healthz
-            port: 8080
+            port: 8070
           initialDelaySeconds: 30
           timeoutSeconds: 5
         readinessProbe:
           httpGet:
             path: /healthz
-            port: 8080
+            port: 8070
           initialDelaySeconds: 5
           timeoutSeconds: 5
       terminationGracePeriodSeconds: 30

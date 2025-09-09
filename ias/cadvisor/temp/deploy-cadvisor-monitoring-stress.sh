@@ -43,15 +43,15 @@ NODE_IP=$(microk8s kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(
 NODEPORT=$(microk8s kubectl get svc cadvisor -n monitoring -o jsonpath='{.spec.ports[0].nodePort}')
 
 echo -e "\n🌐 URLs de acesso:"
-echo "Interface Web (hostNetwork): http://$NODE_IP:8080"
+echo "Interface Web (hostNetwork): http://$NODE_IP: 8070"
 echo "Interface Web (NodePort): http://$NODE_IP:$NODEPORT"
-echo "Métricas Prometheus: http://$NODE_IP:8080/metrics"
+echo "Métricas Prometheus: http://$NODE_IP: 8070/metrics"
 
 # Testar conectividade
 echo -e "\n🧪 Testando conectividade..."
 sleep 10
 
-if curl -s --connect-timeout 5 "http://$NODE_IP:8080/healthz" > /dev/null; then
+if curl -s --connect-timeout 5 "http://$NODE_IP: 8070/healthz" > /dev/null; then
     echo "✅ cAdvisor acessível via hostNetwork"
     WORKING_URL="http://$NODE_IP:4194"
 elif curl -s --connect-timeout 5 "http://$NODE_IP:$NODEPORT/healthz" > /dev/null; then

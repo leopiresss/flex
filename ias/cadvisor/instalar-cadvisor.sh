@@ -12,8 +12,8 @@ if ! microk8s status --wait-ready; then
 fi
 
 # Aplicar configurações
-echo "📄 Aplicando ConfigMap..."
-microk8s kubectl apply -f cadvisor-configmap.yaml
+# echo "📄 Aplicando ConfigMap..."
+# microk8s kubectl apply -f cadvisor-configmap.yaml
 
 echo "📄 Aplicando RBAC..."
 microk8s kubectl apply -f cadvisor-rbac.yaml
@@ -38,10 +38,10 @@ microk8s kubectl get pods -n monitoring -l app=cadvisor -o wide
 echo "✅ Instalado conectividade do cAdvisor"
 # Parâmetros para chamar a função
 RESOURCE_TYPE="svc"
-RESOURCE_NAME="cadvisor-service"
+RESOURCE_NAME="cadvisor"
 NAMESPACE="monitoring"
-LOCAL_PORT="8080"
-REMOTE_PORT="8080"
+LOCAL_PORT="8070"
+REMOTE_PORT="8070"
 LOCAL_INTERFACE="0.0.0.0"
 PID_FILE="/tmp/cadivisor-pf.pid"
 NET_IFACE="ens33"

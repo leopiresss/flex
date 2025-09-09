@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: cadvisor-latest
-  namespace: kube-system
+  namespace: monitoring
   labels:
     app: cadvisor
     version: v0.50.0
@@ -49,7 +49,7 @@ spec:
           mountPath: /sys/fs/cgroup
           readOnly: true
         args:
-        - --port=8080
+        - --port=8070
         - --housekeeping_interval=10s
         - --max_housekeeping_interval=15s
         - --event_storage_event_limit=default=0
