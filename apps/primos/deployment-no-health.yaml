@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prime-server
+  namespace: default
+  labels:
+    app: prime-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prime-server
+  template:
+    metadata:
+      labels:
+        app: prime-server
+    spec:
+      containers:
+      - name: prime-server
+        image: prime-server:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 7070
+          name: http
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+        # SEM HEALTH CHECKS - para debug inicial
+        env:
+        - name: PORT
+          value: "7070"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prime-server-service
+  namespace: default
+  labels:
+    app: prime-server
+spec:
+  type: ClusterIP
+  ports:
+  - port: 7070
+    targetPort: 7070
+    protocol: TCP
+    name: http
+  selector:
+    app: prime-server

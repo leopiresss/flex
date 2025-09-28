@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prime-server
+  namespace: default
+  labels:
+    app: prime-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prime-server
+  template:
+    metadata:
+      labels:
+        app: prime-server
+    spec:
+      containers:
+      - name: prime-server
+        image: prime-server:latest
+        imagePullPolicy: Never  # Usa imagem local, não faz pull de registry remoto
+        ports:
+        - containerPort: 7070
+          name: http
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+        # Opcional: Health checks
+        livenessProbe:
+          httpGet:
+            path: /health  # Ajuste conforme sua aplicação
+            port: 7070
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health  # Ajuste conforme sua aplicação
+            port: 7070
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prime-server-service
+  namespace: default
+  labels:
+    app: prime-server
+spec:
+  type: ClusterIP  # Use NodePort ou LoadBalancer se precisar de acesso externo
+  ports:
+  - port: 80
+    targetPort: 7070
+    protocol: TCP
+    name: http
+  selector:
+    app: prime-server
+---
+# Opcional: Ingress para acesso externo
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: prime-server-ingress
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: prime-server.local  # Adicione ao /etc/hosts se necessário
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: prime-server-service
+            port:
+              number: 80
