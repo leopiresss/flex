@@ -19,6 +19,10 @@ echo "Importando imagem para microk8s..."
 docker save cpu-stress:latest | microk8s ctr image import -
 
 # Aplica manifests
+echo "Aplicando Namespace..."
+microk8s kubectl apply -f namespace.yaml
+
+
 echo "Aplicando ConfigMap..."
 microk8s kubectl apply -f configmap.yaml
 
@@ -36,4 +40,4 @@ echo "microk8s kubectl top pods"
 
 echo ""
 echo "Para executar como Job:"
-echo "microk8s kubectl apply -f job.yaml"
+microk8s kubectl apply -f job.yaml

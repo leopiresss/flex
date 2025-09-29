@@ -170,6 +170,9 @@ uninstall_cadvisor() {
     # 3. Remover DaemonSet
     delete_resource "daemonset" "cadvisor" "$namespace" "DaemonSet do cAdvisor"
     
+    # 4. Remover Deplyment
+    delete_resource "deployment" "cadvisor" "$namespace" "Deployment do cAdvisor"
+
     # Aguardar pods serem finalizados
     log_info "Aguardando finalização dos pods do cAdvisor..."
     sleep 5

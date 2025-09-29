@@ -1,0 +1,73 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 15s
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+scrape_configs:
+  # Job para coletar métricas do API Server
+  - job_name: 'kubernetes-apiserver'
+    static_configs:
+      - targets: ['192.168.242.131:10443']
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    metrics_path: /metrics
+    scheme: https  # ou http, dependendo da configuração
+    
+    # Configurações de TLS (se necessário)
+    tls_config:
+      insecure_skip_verify: true  # Para desenvolvimento
+      # ca_file: /path/to/ca.crt
+      # cert_file: /path/to/client.crt
+      # key_file: /path/to/client.key
+    
+    # Autenticação (se necessário)
+    # bearer_token_file: /path/to/token
+    # basic_auth:
+    #   username: admin
+    #   password: password
+
+  # Job adicional para métricas do kubelet
+  - job_name: 'kubernetes-kubelet'
+    static_configs:
+      - targets: ['192.168.242.131:10250']
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
+
+  - job_name: 'kubernetes-nodes-cadvisor'
+    scrape_interval: 15s
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    kubernetes_sd_configs:
+      - role: node
+    relabel_configs:
+      # Ajusta o caminho do endpoint do kubelet para coletar métricas do cAdvisor
+      - source_labels: [__meta_kubernetes_node_name]
+        regex: (.+)
+        target_label: __metrics_path__
+        replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor      
+  - job_name: 'kube-state-metrics'
+    static_configs:
+      - targets: ['kube-state-metrics.kube-system.svc.cluster.local:8081']
+
+  - job_name: 'kubernetes-pods'
+    kubernetes_sd_configs:
+      - role: pod
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: (.+):(?:\d+);(\d+)
+        replacement: $1:$2
+        target_label: __address__

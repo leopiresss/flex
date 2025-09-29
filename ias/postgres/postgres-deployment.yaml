@@ -1,8 +1,8 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  namespace: stress-app
   name: postgres-deployment
-  namespace: default
   labels:
     app: postgres
 spec:
@@ -43,10 +43,12 @@ spec:
           mountPath: /var/lib/postgresql/data
         resources:
           requests:
-            memory: "256Mi"
+            # memory: "256Mi"
+            memory: "100Mi"
             cpu: "250m"
           limits:
-            memory: "512Mi"
+            # memory: "512Mi"
+            memory: "100Mi"
             cpu: "500m"
       volumes:
       - name: postgres-storage

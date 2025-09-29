@@ -1,6 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
+  namespace: stress-app
   name: cpu-stress-job
 spec:
   template:

@@ -25,23 +25,30 @@ spec:
             cpu: 200m
             memory: 300Mi
         volumeMounts:
-        - name: rootfs
-          mountPath: /rootfs
-          readOnly: false
-        - name: var-run
-          mountPath: /var/run
-          readOnly: false
-        - name: sys
-          mountPath: /sys
-          readOnly: false
-        - name: containerd
-          mountPath: /var/lib/containerd
-          readOnly: false
+          - name: rootfs
+            mountPath: /rootfs
+            readOnly: true
+          - name: var-run
+            mountPath: /var/run
+            readOnly: false
+          - name: sys
+            mountPath: /sys
+            readOnly: true
+          - name: var-lib-docker
+            mountPath: /var/lib/docker
+            readOnly: true
+          - name: var-lib-containerd
+            mountPath: /var/snap/microk8s/common/var/lib/containerd
+            readOnly: true
+          - name: var-lib-kubelet
+            mountPath: /var/snap/microk8s/common/var/lib/kubelet
+            readOnly: true
         ports:
         - name: http
-          containerPort: 8080
+          containerPort: 8070
           protocol: TCP
         args:
+          - --port=8070   
           - --housekeeping_interval=30s
           - --max_housekeeping_interval=35s
           - --event_storage_event_limit=default=0
@@ -54,29 +61,35 @@ spec:
         livenessProbe:
           httpGet:
             path: /healthz
-            port: 8080
+            port: 8070
           initialDelaySeconds: 30
           timeoutSeconds: 5
         readinessProbe:
           httpGet:
             path: /healthz
-            port: 8080
+            port: 8070
           initialDelaySeconds: 5
           timeoutSeconds: 5
       terminationGracePeriodSeconds: 30
       volumes:
-      - name: rootfs
-        hostPath:
-          path: /
-      - name: var-run
-        hostPath:
-          path: /var/run
-      - name: sys
-        hostPath:
-          path: /sys
-      - name: containerd
-        hostPath:
-          path: /var/snap/microk8s/common/var/lib/containerd
+        - name: rootfs
+          hostPath:
+            path: /
+        - name: var-run
+          hostPath:
+            path: /var/run
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: var-lib-docker
+          hostPath:
+            path: /var/snap/microk8s/common/var/lib/docker
+        - name: var-lib-containerd
+          hostPath:
+            path: /var/snap/microk8s/common/var/lib/containerd
+        - name: var-lib-kubelet
+          hostPath:
+            path: /var/snap/microk8s/common/var/lib/kubelet
       tolerations:
       - effect: NoSchedule
         operator: Exists

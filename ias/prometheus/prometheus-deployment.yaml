@@ -17,6 +17,9 @@ spec:
       containers:
       - name: prometheus
         image: prom/prometheus:latest
+        env:
+          - name: TZ
+            value: "America/Sao_Paulo"
         ports:
         - containerPort: 9090
         volumeMounts:
@@ -28,6 +31,7 @@ spec:
           - '/bin/prometheus'
           - '--config.file=/etc/prometheus/prometheus.yml'
           - '--storage.tsdb.path=/prometheus'
+          - '--web.enable-admin-api' # Habilita a API de administração
           - '--web.console.libraries=/etc/prometheus/console_libraries'
           - '--web.console.templates=/etc/prometheus/consoles'
           - '--storage.tsdb.retention.time=200h'

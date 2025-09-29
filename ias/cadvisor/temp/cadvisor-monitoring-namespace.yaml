@@ -1,0 +1,354 @@
+# Namespace monitoring
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    name: monitoring
+---
+# Namespace stress-app (para referência)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: stress-app
+  labels:
+    name: stress-app
+---
+# ServiceAccount no namespace monitoring
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cadvisor
+  namespace: monitoring
+  labels:
+    app: cadvisor
+    version: v0.50.0
+---
+# ClusterRole para acessar recursos de todos os namespaces
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cadvisor-monitoring
+  labels:
+    app: cadvisor
+    version: v0.50.0
+rules:
+- apiGroups: [""]
+  resources: ["nodes", "nodes/stats", "nodes/metrics", "nodes/proxy"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets", "daemonsets", "statefulsets"]
+  verbs: ["get", "list", "watch"]
+---
+# ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cadvisor-monitoring
+  labels:
+    app: cadvisor
+    version: v0.50.0
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cadvisor-monitoring
+subjects:
+- kind: ServiceAccount
+  name: cadvisor
+  namespace: monitoring
+---
+# ConfigMap com configuração específica
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cadvisor-config
+  namespace: monitoring
+  labels:
+    app: cadvisor
+    version: v0.50.0
+data:
+  cadvisor.conf: |
+    {
+      "containerHints": {
+        "/": {
+          "has_network": true,
+          "has_filesystem": true
+        }
+      },
+      "machineIdFilePath": "/etc/machine-id,/var/lib/dbus/machine-id",
+      "dockerOnly": false,
+      "containerdEndpoint": "/var/snap/microk8s/common/run/containerd.sock",
+      "containerdNamespace": "k8s.io",
+      "whitelistedContainerLabels": [
+        "io.kubernetes.container.name",
+        "io.kubernetes.pod.name",
+        "io.kubernetes.pod.namespace",
+        "io.kubernetes.pod.uid"
+      ]
+    }
+---
+# DaemonSet no namespace monitoring
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cadvisor
+  namespace: monitoring
+  labels:
+    app: cadvisor
+    version: v0.50.0
+    component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: cadvisor
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: cadvisor
+        version: v0.50.0
+        component: monitoring
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "4194"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: cadvisor
+      hostNetwork: true
+      hostPID: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+      - name: cadvisor
+        image: gcr.io/cadvisor/cadvisor:v0.50.0
+        ports:
+        - containerPort: 4194
+          hostPort: 4194
+          name: http
+          protocol: TCP
+        volumeMounts:
+        - name: rootfs
+          mountPath: /rootfs
+          readOnly: true
+        - name: var-run
+          mountPath: /var/run
+          readOnly: true
+        - name: sys
+          mountPath: /sys
+          readOnly: true
+        - name: var-lib-docker
+          mountPath: /var/lib/docker
+          readOnly: true
+        - name: dev-disk
+          mountPath: /dev/disk
+          readOnly: true
+        - name: proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: cgroup
+          mountPath: /sys/fs/cgroup
+          readOnly: true
+        - name: cadvisor-config
+          mountPath: /etc/cadvisor
+          readOnly: true
+        args:
+        - --port=4194
+        - --profiling=false
+        - --housekeeping_interval=10s
+        - --max_housekeeping_interval=15s
+        - --event_storage_event_limit=default=0
+        - --event_storage_age_limit=default=0
+        - --disable_metrics=percpu,sched,tcp,udp,disk,diskIO,accelerator,hugetlb,referenced_memory,cpu_topology,resctrl
+        - --docker_only=false
+        - --store_container_labels=false
+        - --whitelisted_container_labels=io.kubernetes.container.name,io.kubernetes.pod.name,io.kubernetes.pod.namespace,io.kubernetes.pod.uid
+        - --containerd=/var/snap/microk8s/common/run/containerd.sock
+        - --containerd_namespace=k8s.io
+        - --raw_cgroup_prefix_whitelist=/kubepods
+        - --collect_metrics_time=true
+        - --disable_root_cgroup_stats=false
+        - --enable_load_reader=true
+        env:
+        - name: CADVISOR_HEALTHCHECK_URL
+          value: http://localhost:4194/healthz
+        - name: TARGET_NAMESPACE
+          value: "stress-app"
+        resources:
+          requests:
+            memory: 200Mi
+            cpu: 150m
+          limits:
+            memory: 2000Mi
+            cpu: 300m
+        securityContext:
+          privileged: true
+          runAsUser: 0
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 4194
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 4194
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: rootfs
+        hostPath:
+          path: /
+          type: Directory
+      - name: var-run
+        hostPath:
+          path: /var/run
+          type: Directory
+      - name: sys
+        hostPath:
+          path: /sys
+          type: Directory
+      - name: var-lib-docker
+        hostPath:
+          path: /var/lib/docker
+          type: DirectoryOrCreate
+      - name: dev-disk
+        hostPath:
+          path: /dev/disk
+          type: Directory
+      - name: proc
+        hostPath:
+          path: /proc
+          type: Directory
+      - name: cgroup
+        hostPath:
+          path: /sys/fs/cgroup
+          type: Directory
+      - name: cadvisor-config
+        configMap:
+          name: cadvisor-config
+      tolerations:
+      - operator: Exists
+---
+# Service no namespace monitoring
+apiVersion: v1
+kind: Service
+metadata:
+  name: cadvisor
+  namespace: monitoring
+  labels:
+    app: cadvisor
+    version: v0.50.0
+    component: monitoring
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "4194"
+    prometheus.io/path: "/metrics"
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+spec:
+  type: NodePort
+  ports:
+  - port: 4194
+    targetPort: 4194
+    nodePort: 31194
+    protocol: TCP
+    name: cadvisor-http
+  selector:
+    app: cadvisor
+  sessionAffinity: None
+---
+# Service Headless para descoberta
+apiVersion: v1
+kind: Service
+metadata:
+  name: cadvisor-headless
+  namespace: monitoring
+  labels:
+    app: cadvisor
+    version: v0.50.0
+    component: monitoring
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "4194"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - port: 4194
+    targetPort: 4194
+    protocol: TCP
+    name: cadvisor-http
+  selector:
+    app: cadvisor
+  publishNotReadyAddresses: true
+---
+# ServiceMonitor específico para stress-app
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: cadvisor-stress-app
+  namespace: monitoring
+  labels:
+    app: cadvisor
+    version: v0.50.0
+    component: monitoring
+    target: stress-app
+spec:
+  selector:
+    matchLabels:
+      app: cadvisor
+  endpoints:
+  - port: cadvisor-http
+    interval: 15s                     # Coleta mais frequente para stress testing
+    path: /metrics
+    scheme: http
+    honorLabels: true
+    scrapeTimeout: 10s
+    metricRelabelings:
+    # Filtrar apenas métricas do namespace stress-app
+    - sourceLabels: [namespace]
+      regex: 'stress-app'
+      action: keep
+    - sourceLabels: [__name__]
+      regex: 'container_(cpu_usage_seconds_total|memory_usage_bytes|network_.*_bytes_total|fs_.*_bytes)'
+      action: keep
+    relabelings:
+    # Adicionar labels específicos para stress-app
+    - sourceLabels: [__meta_kubernetes_pod_node_name]
+      targetLabel: node
+      replacement: ${1}
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+      replacement: ${1}
+    - sourceLabels: [__meta_kubernetes_pod_container_name]
+      targetLabel: container
+      replacement: ${1}
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: kubernetes_namespace
+      replacement: ${1}
+    - sourceLabels: [__meta_kubernetes_pod_label_app]
+      targetLabel: app_name
+      replacement: ${1}
+    # Adicionar label específico para identificar métricas de stress-app
+    - targetLabel: monitoring_target
+      replacement: stress-app
+  namespaceSelector:
+    matchNames:
+    - monitoring
+  jobLabel: app

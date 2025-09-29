@@ -1,27 +1,28 @@
+# rbac-cadvisor.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: cadvisor
+  name: cadvisor-reader
   namespace: monitoring
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: cadvisor
+  name: cadvisor-reader
 rules:
 - apiGroups: [""]
-  resources: ["nodes", "nodes/stats", "services", "endpoints", "pods"]
-  verbs: ["get", "list", "watch"]
+  resources: ["nodes", "nodes/metrics", "nodes/proxy"]
+  verbs: ["get", "list"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: cadvisor
+  name: cadvisor-reader
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: cadvisor
+  name: cadvisor-reader
 subjects:
 - kind: ServiceAccount
-  name: cadvisor
-  namespace: monitoring
+  name: cadvisor-reader
+  namespace: default
