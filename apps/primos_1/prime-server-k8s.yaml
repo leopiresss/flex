@@ -1,0 +1,79 @@
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prime-server
+  labels:
+    app: prime-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prime-server
+  template:
+    metadata:
+      labels:
+        app: prime-server
+    spec:
+      containers:
+      - name: prime-server
+        image: prime-server:latest
+        imagePullPolicy: Never  # Use imagem local
+        ports:
+        - containerPort: 7071
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: FLASK_ENV
+          value: "production"
+        volumeMounts:
+        - name: logs-volume
+          mountPath: /app/logs
+        - name: csv-log-volume
+          mountPath: /app/prime_server_log.csv
+          subPath: prime_server_log.csv
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 7071
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 7071
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      volumes:
+      - name: logs-volume
+        persistentVolumeClaim:
+          claimName: prime-server-logs-pvc
+      - name: csv-log-volume
+        persistentVolumeClaim:
+          claimName: prime-server-logs-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prime-server-service
+  labels:
+    app: prime-server
+spec:
+  type: NodePort
+  selector:
+    app: prime-server
+  ports:
+  - port: 7071          # Porta interna do serviço
+    targetPort: 7071    # Porta do container
+    nodePort: 30071     # Porta externa do NodePort (30000-32767)
+    protocol: TCP
+    name: http

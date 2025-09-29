@@ -6,7 +6,7 @@
 echo "🚀 Iniciando Servidor de Números Primos"
 echo "======================================"
 
-PORT=7070
+PORT=7071
 SCRIPT_NAME="prime_server.py"
 
 # Verificar se o arquivo do servidor existe

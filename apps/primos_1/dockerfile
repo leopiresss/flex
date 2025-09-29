@@ -1,0 +1,32 @@
+# Use uma imagem base oficial do Python
+FROM python:3.11-slim
+
+# Define o diretório de trabalho dentro do container
+WORKDIR /app
+
+# Instala as dependências do sistema se necessário
+RUN apt-get update && apt-get install -y \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copia o arquivo de requisitos (requirements.txt)
+COPY requirements.txt .
+
+# Instala as dependências Python
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copia o código da aplicação para o container
+COPY . .
+
+# Cria diretório para logs se necessário
+RUN mkdir -p /app/logs
+
+# Expõe a porta que a aplicação vai usar
+EXPOSE 7071
+
+# Define variáveis de ambiente
+ENV PYTHONUNBUFFERED=1
+ENV FLASK_APP=app.py
+ENV FLASK_ENV=production
+
+# Comando para executar a aplicação
+CMD ["python", "app.py"]

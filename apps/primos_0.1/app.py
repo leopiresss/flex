@@ -74,7 +74,7 @@ def get_primes():
     """
     try:
         # Captura o timestamp de início
-        start_time = time.time()
+        start_time =  time.time()
         start_timestamp = int(start_time * 1000)  # timestamp em milissegundos
         
         # Obtém o parâmetro 'count' da query string
@@ -105,16 +105,20 @@ def get_primes():
         
         # Calcula a duração em milissegundos
         duration_ms = int((end_time - start_time) * 1000)
-        
+        dt_start_time =  time.strftime("%d/%m/%Y %H:%M:%S")
+        dt_end_time =  time.strftime("%d/%m/%Y %H:%M:%S")
+        print(dt_start_time)                               
         # Grava no log
-        log_to_csv(start_timestamp, end_timestamp, duration_ms, len(prime_list))
+        log_to_csv(dt_start_time, dt_end_time, duration_ms, len(prime_list))
         
         # Prepara a resposta JSON
+     
+        
         response = {
             'qtd_numeros_primos': len(prime_list),
             'lista_numeros_primos': prime_list,
             'duracao_execucao_ms': duration_ms,
-            'timestamp_execucao': start_timestamp
+            'dt_inicio': f'{dt_start_time}'
         }
         
         return jsonify(response), 200
@@ -150,7 +154,9 @@ def get_primes_by_path(count):
         duration_ms = int((end_time - start_time) * 1000)
         
         log_to_csv(start_timestamp, end_timestamp, duration_ms, len(prime_list))
-        
+
+
+
         response = {
             'qtd_numeros_primos': len(prime_list),
             'lista_numeros_primos': prime_list,
