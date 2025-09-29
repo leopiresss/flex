@@ -5,8 +5,20 @@ import os
 from datetime import datetime
 import math
 import threading
+import logging
 
 app = Flask(__name__)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('postgres_stress_test.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
 
 # Lock para sincronizar escrita no arquivo de log
 log_lock = threading.Lock()
@@ -41,6 +53,8 @@ def generate_primes(count):
         num += 1
     
     return primes
+
+
 
 def log_to_csv(start_time, end_time, duration_ms, prime_count):
     """

@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TestConfig:
     """Configuração dos testes"""
-    host: str = "192.168.242.131"
+    host: str = "192.168.242.134"
     port: int = 30432
     database: str = "mydb"
     username: str = "postgres"
@@ -541,7 +541,7 @@ def main():
     
     # Configuração - AJUSTE AQUI SUAS CREDENCIAIS
     config = TestConfig(
-        host="192.168.242.131",
+        host="192.168.242.134",
         port=30432,
         database="mydb",
         username="postgres",

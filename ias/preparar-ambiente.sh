@@ -6,3 +6,7 @@ cd ~/flex/ias/cadvisor/
 
 cd ~/flex/apps/stress-cpu/
 ./instalar-stress-cpu.sh
+
+cd ~/flex/ias/prometheus_helm/
+make install-all &
+make port-forward &
