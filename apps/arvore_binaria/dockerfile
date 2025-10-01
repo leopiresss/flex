@@ -1,0 +1,14 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Copia o código da aplicação
+COPY memory_stress.py .
+
+# Define variáveis de ambiente padrão
+ENV MEMORY_TARGET_MB=500
+ENV NODE_SIZE_KB=1
+ENV DURATION_SECONDS=3600
+
+# Executa a aplicação
+CMD ["python", "-u", "memory_stress.py"]

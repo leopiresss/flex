@@ -546,10 +546,10 @@ def main():
         database="mydb",
         username="postgres",
         password="postgres123",  # ⚠️ ALTERE AQUI
-        max_connections=15,
+        max_connections=100,
         test_duration=60,  # 1 minuto para teste inicial
         query_types=['read', 'write', 'complex'],
-        data_size_records=2000
+        data_size_records=4000
     )
     
     tester = PostgreSQLStressTester(config)

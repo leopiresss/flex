@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: collector
+  namespace: kubemon
+  labels:
+    app: collector
+spec:
+  nodeName: master
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: kubemon-volume-claim
+  containers:
+  - name: kubemon-collector
+    image: vpemfh7/kubemon:latest
+    imagePullPolicy: IfNotPresent
+    args: ["-t", "collector", "-H", "$(POD_IP)", "-p", "9822"]
+    securityContext:
+      privileged: true
+    env:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+    envFrom:
+    - configMapRef:
+        name: kubemon-env
+    ports:
+    - name: handler
+      containerPort: 9822
+    - name: cmd-iface
+      containerPort: 9880
+    - name: healthcheck
+      containerPort: 9882
+    - name: instances-check
+      containerPort: 9883
+    volumeMounts:
+      - name: data
+        mountPath: "/home/kubemon/output"
