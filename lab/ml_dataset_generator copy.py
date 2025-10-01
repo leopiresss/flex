@@ -438,7 +438,6 @@ class PrometheusMLDatasetGenerator:
                                 custom_thresholds: Dict[str, float] = None) -> pd.DataFrame:
         """Cria labels de degradação para supervised learning"""
         if df.empty:
-            logger.warning("DataFrame vazio, não é possível criar labels")
             return df
         
         logger.info("🏷️  Criando labels de degradação...")
@@ -451,20 +450,16 @@ class PrometheusMLDatasetGenerator:
             'cpu_throttling_percent': 10.0,
             'disk_percent': 85.0,
             'network_drop_percent': 1.0,
-            'restart_threshold': 0  # mudança de 1 para 0 (detecta qualquer diff > 0)
+            'restart_threshold': 1  # qualquer restart indica problema
         }
         
         # Atualiza com thresholds customizados
         if custom_thresholds:
             thresholds.update(custom_thresholds)
-            logger.info(f"   Thresholds customizados aplicados: {custom_thresholds}")
-        
-        logger.info(f"   Thresholds ativos: {thresholds}")
         
         # Inicializa labels
         df['degradation_level'] = 0  # 0: Normal
         df['is_degraded'] = 0        # Binary
-        df['degradation_score'] = 0  # Inicializa score
         
         # Lista de condições de degradação
         degradation_conditions = []
@@ -475,107 +470,61 @@ class PrometheusMLDatasetGenerator:
         # 1. Memória alta
         if 'memory_usage_percent' in df.columns:
             memory_degraded = df['memory_usage_percent'] > thresholds['memory_percent']
-            count_memory = memory_degraded.sum()
-            logger.info(f"   ✓ Degradação por memória: {count_memory} ocorrências ({count_memory/len(df)*100:.1f}%)")
             degradation_conditions.append(memory_degraded)
-            condition_names.append('memory')
+            condition_names.append('high_memory')
             df['degradation_memory'] = memory_degraded.astype(int)
-        else:
-            logger.warning("   ⚠ Coluna 'memory_usage_percent' não encontrada")
-            df['degradation_memory'] = 0
         
         # 2. CPU alta
         if 'cpu_usage_percent' in df.columns:
             cpu_degraded = df['cpu_usage_percent'] > thresholds['cpu_percent']
-            count_cpu = cpu_degraded.sum()
-            logger.info(f"   ✓ Degradação por CPU: {count_cpu} ocorrências ({count_cpu/len(df)*100:.1f}%)")
             degradation_conditions.append(cpu_degraded)
-            condition_names.append('cpu')
+            condition_names.append('high_cpu')
             df['degradation_cpu'] = cpu_degraded.astype(int)
-        else:
-            logger.warning("   ⚠ Coluna 'cpu_usage_percent' não encontrada")
-            df['degradation_cpu'] = 0
         
         # 3. CPU throttling
         if 'cpu_throttling_percent' in df.columns:
             throttling_degraded = df['cpu_throttling_percent'] > thresholds['cpu_throttling_percent']
-            count_throttling = throttling_degraded.sum()
-            logger.info(f"   ✓ Degradação por throttling: {count_throttling} ocorrências ({count_throttling/len(df)*100:.1f}%)")
             degradation_conditions.append(throttling_degraded)
-            condition_names.append('throttling')
+            condition_names.append('cpu_throttling')
             df['degradation_throttling'] = throttling_degraded.astype(int)
-        else:
-            logger.warning("   ⚠ Coluna 'cpu_throttling_percent' não encontrada")
-            df['degradation_throttling'] = 0
         
         # 4. Disk usage alto
         if 'disk_usage_percent' in df.columns:
             disk_degraded = df['disk_usage_percent'] > thresholds['disk_percent']
-            count_disk = disk_degraded.sum()
-            logger.info(f"   ✓ Degradação por disco: {count_disk} ocorrências ({count_disk/len(df)*100:.1f}%)")
             degradation_conditions.append(disk_degraded)
-            condition_names.append('disk')
+            condition_names.append('high_disk')
             df['degradation_disk'] = disk_degraded.astype(int)
-        else:
-            logger.warning("   ⚠ Coluna 'disk_usage_percent' não encontrada")
-            df['degradation_disk'] = 0
         
         # 5. Network drops
         if 'network_drop_percent' in df.columns:
             network_degraded = df['network_drop_percent'] > thresholds['network_drop_percent']
-            count_network = network_degraded.sum()
-            logger.info(f"   ✓ Degradação por rede: {count_network} ocorrências ({count_network/len(df)*100:.1f}%)")
             degradation_conditions.append(network_degraded)
-            condition_names.append('network')
+            condition_names.append('network_drops')
             df['degradation_network'] = network_degraded.astype(int)
-        else:
-            logger.warning("   ⚠ Coluna 'network_drop_percent' não encontrada")
-            df['degradation_network'] = 0
         
         # 6. Pod restarts
         if 'pod_restarts' in df.columns:
-            restart_diff = df['pod_restarts'].diff()
-            restart_degraded = restart_diff > thresholds['restart_threshold']
+            restart_degraded = df['pod_restarts'].diff() >= thresholds['restart_threshold']
             restart_degraded = restart_degraded.fillna(False)
-            count_restarts = restart_degraded.sum()
-            logger.info(f"   ✓ Degradação por restarts: {count_restarts} ocorrências ({count_restarts/len(df)*100:.1f}%)")
             degradation_conditions.append(restart_degraded)
-            condition_names.append('restarts')
+            condition_names.append('pod_restarts')
             df['degradation_restarts'] = restart_degraded.astype(int)
-        else:
-            logger.warning("   ⚠ Coluna 'pod_restarts' não encontrada")
-            df['degradation_restarts'] = 0
         
         # === CRIAÇÃO DOS LABELS ===
-        if len(degradation_conditions) == 0:
-            logger.error("   ❌ NENHUMA condição de degradação pôde ser criada!")
-            logger.error("   Verifique se as features derivadas foram calculadas corretamente")
-            return df
-        
-        logger.info(f"   Total de condições verificadas: {len(degradation_conditions)}")
-        
-        # Conta quantas condições são verdadeiras para cada linha
-        total_conditions = pd.Series([0] * len(df), index=df.index)
-        for condition in degradation_conditions:
-            total_conditions = total_conditions + condition.astype(int)
-        
-        df['degradation_score'] = total_conditions
-        
-        # Labels multi-classe baseados na severidade
-        df.loc[total_conditions == 1, 'degradation_level'] = 1  # Leve
-        df.loc[(total_conditions >= 2) & (total_conditions <= 3), 'degradation_level'] = 2  # Moderada
-        df.loc[total_conditions >= 4, 'degradation_level'] = 3  # Severa
-        
-        # Label binário
-        df.loc[total_conditions > 0, 'is_degraded'] = 1
-        
-        # Verifica se algum label foi criado
-        degraded_count = (df['is_degraded'] == 1).sum()
-        if degraded_count == 0:
-            logger.warning("   ⚠️  ATENÇÃO: Nenhum registro foi marcado como degradado!")
-            logger.warning("   Considere ajustar os thresholds para valores mais baixos")
-        else:
-            logger.info(f"   ✓ Total de registros degradados: {degraded_count} ({degraded_count/len(df)*100:.1f}%)")
+        if degradation_conditions:
+            # Conta quantas condições são verdadeiras para cada linha
+            total_conditions = sum(degradation_conditions)
+            
+            # Labels multi-classe baseados na severidade
+            df.loc[total_conditions == 1, 'degradation_level'] = 1  # Leve
+            df.loc[(total_conditions >= 2) & (total_conditions <= 3), 'degradation_level'] = 2  # Moderada
+            df.loc[total_conditions >= 4, 'degradation_level'] = 3  # Severa
+            
+            # Label binário
+            df.loc[total_conditions > 0, 'is_degraded'] = 1
+            
+            # Condições individuais como features
+            df['degradation_score'] = total_conditions  # Score numérico
         
         # === ESTATÍSTICAS DOS LABELS ===
         self._print_label_statistics(df, condition_names)
@@ -586,53 +535,25 @@ class PrometheusMLDatasetGenerator:
         """Imprime estatísticas dos labels"""
         logger.info("📊 Distribuição de labels:")
         
-        # Verifica se as colunas de target existem
-        target_cols = ['degradation_level', 'is_degraded', 'degradation_score']
-        missing_targets = [col for col in target_cols if col not in df.columns]
-        
-        if missing_targets:
-            logger.error(f"   ❌ TARGETS FALTANDO: {missing_targets}")
-            return
-        
         # Distribuição multi-classe
         if 'degradation_level' in df.columns:
             label_counts = df['degradation_level'].value_counts().sort_index()
             labels = ['Normal', 'Leve', 'Moderada', 'Severa']
             
-            logger.info("   Degradation Level (multi-classe):")
             for level, count in label_counts.items():
                 if level < len(labels):
                     pct = count / len(df) * 100
-                    logger.info(f"     {level} ({labels[level]}): {count:,} ({pct:.1f}%)")
-        
-        # Distribuição binária
-        if 'is_degraded' in df.columns:
-            binary_counts = df['is_degraded'].value_counts().sort_index()
-            logger.info("   Is Degraded (binário):")
-            for val, count in binary_counts.items():
-                label = "Normal" if val == 0 else "Degradado"
-                pct = count / len(df) * 100
-                logger.info(f"     {val} ({label}): {count:,} ({pct:.1f}%)")
-        
-        # Distribuição do score
-        if 'degradation_score' in df.columns:
-            score_stats = df['degradation_score'].describe()
-            logger.info(f"   Degradation Score: min={score_stats['min']:.0f}, max={score_stats['max']:.0f}, mean={score_stats['mean']:.2f}")
+                    logger.info(f"   {labels[level]}: {count} ({pct:.1f}%)")
         
         # Distribuição das condições individuais
         if condition_names:
-            logger.info("   Condições individuais:")
+            logger.info("📋 Condições de degradação:")
             for condition in condition_names:
-                col_name = f'degradation_{condition}'
+                col_name = f'degradation_{condition.replace("high_", "").replace("_", "")}'
                 if col_name in df.columns:
                     count = df[col_name].sum()
                     pct = count / len(df) * 100
-                    logger.info(f"     {condition}: {count:,} ({pct:.1f}%)")
-        
-        # Lista todas as colunas de degradação criadas
-        degradation_cols = [col for col in df.columns if col.startswith('degradation_')]
-        logger.info(f"   Total de colunas target criadas: {len(degradation_cols)}")
-        logger.info(f"   Targets: {degradation_cols}")
+                    logger.info(f"   {condition}: {count} ({pct:.1f}%)")
     
     def clean_dataset(self, df: pd.DataFrame, 
                      max_missing_percent: float = 30.0,
@@ -850,168 +771,33 @@ class PrometheusMLDatasetGenerator:
                 logger.error("❌ Falha na coleta de dados")
                 return pd.DataFrame(), None
             
-            logger.info(f"✓ Etapa 1/5: {len(df)} registros coletados, {len(df.columns)} colunas")
-            
             # 2. Calcula features derivadas
             df = self.calculate_derived_features(df)
-            logger.info(f"✓ Etapa 2/5: Features derivadas calculadas, {len(df.columns)} colunas totais")
             
             # 3. Cria labels (se solicitado)
             if include_labels:
-                logger.info("✓ Etapa 3/5: Criando labels de degradação...")
                 df = self.create_degradation_labels(df, custom_thresholds)
-                
-                # Diagnóstico após criação de labels
-                self.diagnose_dataset(df)
-            else:
-                logger.info("⊘ Etapa 3/5: Labels não solicitados (--no-labels)")
             
             # 4. Limpa dataset
             df = self.clean_dataset(df, max_missing_percent, fill_strategy)
-            logger.info(f"✓ Etapa 4/5: Dataset limpo, {len(df)} registros finais")
             
             if df.empty:
                 logger.error("❌ Dataset vazio após limpeza")
                 return pd.DataFrame(), None
             
             # 5. Exporta dataset
-            logger.info("✓ Etapa 5/5: Exportando dataset...")
             filepath = self.export_dataset(df, filename, export_format, include_metadata=True)
             
-            if not filepath:
-                logger.error("❌ Falha ao exportar dataset")
-                return df, None
-            
-            logger.info("\n" + "=" * 60)
-            logger.info("✅ DATASET PRONTO PARA MACHINE LEARNING!")
+            logger.info("\n✅ DATASET PRONTO PARA MACHINE LEARNING!")
             logger.info(f"📊 Shape final: {df.shape}")
-            logger.info(f"📁 Arquivo: {filepath}")
-            
-            # Verifica se targets foram criados
-            if include_labels:
-                target_cols = [col for col in df.columns if col.startswith('degradation_')]
-                if target_cols:
-                    logger.info(f"🎯 Targets criados: {len(target_cols)}")
-                    logger.info(f"   {target_cols}")
-                else:
-                    logger.warning("⚠️  NENHUM target foi criado! Verifique os thresholds.")
             
             return df, filepath
             
         except Exception as e:
             logger.error(f"❌ Erro no pipeline: {e}")
-            import traceback
-            traceback.print_exc()
             return pd.DataFrame(), None
     
-    def diagnose_dataset(self, df: pd.DataFrame) -> None:
-        """Diagnostica o dataset e identifica problemas com targets"""
-        logger.info("\n🔍 DIAGNÓSTICO DO DATASET:")
-        logger.info("=" * 50)
-        
-        if df.empty:
-            logger.error("❌ Dataset está vazio!")
-            return
-        
-        # 1. Verifica colunas básicas
-        logger.info("1. Colunas básicas:")
-        basic_cols = ['timestamp', 'datetime']
-        for col in basic_cols:
-            status = "✓" if col in df.columns else "✗"
-            logger.info(f"   {status} {col}")
-        
-        # 2. Verifica features derivadas críticas
-        logger.info("\n2. Features derivadas críticas para targets:")
-        critical_features = [
-            'memory_usage_percent',
-            'cpu_usage_percent', 
-            'cpu_throttling_percent',
-            'disk_usage_percent',
-            'network_drop_percent'
-        ]
-        
-        for feat in critical_features:
-            if feat in df.columns:
-                stats = df[feat].describe()
-                logger.info(f"   ✓ {feat}: min={stats['min']:.2f}, max={stats['max']:.2f}, mean={stats['mean']:.2f}")
-            else:
-                logger.warning(f"   ✗ {feat}: FALTANDO!")
-        
-        # 3. Verifica targets
-        logger.info("\n3. Colunas de targets:")
-        target_cols = [
-            'degradation_level',
-            'is_degraded', 
-            'degradation_score',
-            'degradation_memory',
-            'degradation_cpu',
-            'degradation_throttling',
-            'degradation_disk',
-            'degradation_network',
-            'degradation_restarts'
-        ]
-        
-        targets_found = 0
-        for col in target_cols:
-            if col in df.columns:
-                if col in ['degradation_level', 'is_degraded']:
-                    dist = df[col].value_counts().to_dict()
-                    logger.info(f"   ✓ {col}: {dist}")
-                else:
-                    count = df[col].sum()
-                    logger.info(f"   ✓ {col}: {count} ocorrências")
-                targets_found += 1
-            else:
-                logger.error(f"   ✗ {col}: NÃO ENCONTRADO!")
-        
-        logger.info(f"\n   Total targets encontrados: {targets_found}/{len(target_cols)}")
-        
-        # 4. Análise de valores
-        if 'memory_usage_percent' in df.columns:
-            logger.info("\n4. Análise de valores (exemplo: memória):")
-            mem = df['memory_usage_percent']
-            logger.info(f"   Valores > 80%: {(mem > 80).sum()}")
-            logger.info(f"   Valores > 90%: {(mem > 90).sum()}")
-            logger.info(f"   Valores NaN: {mem.isna().sum()}")
-        
-        # 5. Resumo final
-        logger.info("\n5. Resumo:")
-        logger.info(f"   Total de colunas: {len(df.columns)}")
-        logger.info(f"   Total de registros: {len(df)}")
-        logger.info(f"   Features disponíveis: {len([c for c in df.columns if not c.startswith('degradation_') and c not in ['timestamp', 'datetime']])}")
-        logger.info(f"   Targets disponíveis: {len([c for c in df.columns if c.startswith('degradation_')])}")
-        
-        logger.info("\n" + "=" * 50)
-    
     def get_feature_importance_ready_columns(self, df: pd.DataFrame) -> Tuple[List[str], List[str]]:
-        """Retorna listas de colunas de features e targets para ML"""
-        
-        # Colunas a excluir das features
-        exclude_cols = [
-            'timestamp', 'datetime',
-            'degradation_level', 'is_degraded', 'degradation_score'
-        ]
-        
-        # Adiciona colunas de degradação individual (targets auxiliares)
-        degradation_cols = [col for col in df.columns if col.startswith('degradation_')]
-        exclude_cols.extend(degradation_cols)
-        
-        # Remove duplicatas
-        exclude_cols = list(set(exclude_cols))
-        
-        # Features (todas menos as excluídas)
-        feature_cols = [col for col in df.columns if col not in exclude_cols]
-        
-        # Targets disponíveis
-        target_cols = []
-        if 'degradation_level' in df.columns:
-            target_cols.append('degradation_level')
-        if 'is_degraded' in df.columns:
-            target_cols.append('is_degraded')
-        if 'degradation_score' in df.columns:
-            target_cols.append('degradation_score')
-        
-        return feature_cols, target_cols
         """Retorna listas de colunas de features e targets para ML"""
         
         # Colunas a excluir das features
@@ -1184,8 +970,7 @@ Exemplos de uso:
         df, filepath = generator.generate_ml_ready_dataset(
             duration_hours=args.hours,
             step_seconds=args.step,
-         #alterado   include_labels=not args.no_labels,
-            include_labels=True,
+            include_labels=not args.no_labels,
             custom_thresholds=custom_thresholds if custom_thresholds else None,
             export_format=args.format,
             filename=args.filename,
