@@ -1,0 +1,18 @@
+# ============================================================================
+# Dockerfile para Gerador de Stress
+# ============================================================================
+# Arquivo: Dockerfile
+# ---
+FROM python:3.9-slim
+
+WORKDIR /app
+
+# Instalar dependências
+RUN pip install --no-cache-dir psutil
+
+# Copiar script
+COPY memory_stress_generator.py /app/
+
+# Comando padrão
+ENTRYPOINT ["python", "memory_stress_generator.py"]
+CMD ["--scenario", "gradual", "--duration", "60"]

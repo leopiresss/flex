@@ -1,0 +1,470 @@
+# ============================================================================
+# Dockerfile para Gerador de Stress
+# ============================================================================
+# Arquivo: Dockerfile
+---
+# FROM python:3.9-slim
+# 
+# WORKDIR /app
+# 
+# # Instala dependências
+# RUN pip install --no-cache-dir psutil
+# 
+# # Copia script
+# COPY memory_stress_generator.py /app/
+# 
+# # Comando padrão
+# CMD ["python", "memory_stress_generator.py", "--scenario", "gradual", "--duration", "60"]
+
+
+
+# ============================================================================
+# ConfigMap com o script Python
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: memory-stress-script
+  namespace: default
+data:
+  memory_stress_generator.py: |
+    # Cole aqui o conteúdo completo do script Python
+    # (para simplificar, use uma imagem Docker ao invés)
+
+---
+# ============================================================================
+# Deployment - Cenário Gradual
+# ============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memory-stress-gradual
+  namespace: default
+  labels:
+    app: memory-stress
+    scenario: gradual
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: memory-stress
+      scenario: gradual
+  template:
+    metadata:
+      labels:
+        app: memory-stress
+        scenario: gradual
+    spec:
+      containers:
+      - name: stress-generator
+        image: python:3.9-slim
+        command: 
+        - /bin/bash
+        - -c
+        - |
+          pip install psutil > /dev/null 2>&1
+          python /scripts/memory_stress_generator.py \
+            --scenario gradual \
+            --max-memory 400 \
+            --duration 120 \
+            --interval 30
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        volumeMounts:
+        - name: script
+          mountPath: /scripts
+      volumes:
+      - name: script
+        configMap:
+          name: memory-stress-script
+      restartPolicy: Always
+
+---
+# ============================================================================
+# Deployment - Cenário Spike (Picos)
+# ============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memory-stress-spike
+  namespace: default
+  labels:
+    app: memory-stress
+    scenario: spike
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: memory-stress
+      scenario: spike
+  template:
+    metadata:
+      labels:
+        app: memory-stress
+        scenario: spike
+    spec:
+      containers:
+      - name: stress-generator
+        image: python:3.9-slim
+        command:
+        - /bin/bash
+        - -c
+        - |
+          pip install psutil > /dev/null 2>&1
+          python /scripts/memory_stress_generator.py \
+            --scenario spike \
+            --max-memory 300 \
+            --duration 60
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "400Mi"
+            cpu: "500m"
+        volumeMounts:
+        - name: script
+          mountPath: /scripts
+      volumes:
+      - name: script
+        configMap:
+          name: memory-stress-script
+
+---
+# ============================================================================
+# Deployment - Cenário Random (Carga Aleatória)
+# ============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memory-stress-random
+  namespace: default
+  labels:
+    app: memory-stress
+    scenario: random
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: memory-stress
+      scenario: random
+  template:
+    metadata:
+      labels:
+        app: memory-stress
+        scenario: random
+    spec:
+      containers:
+      - name: stress-generator
+        image: python:3.9-slim
+        command:
+        - /bin/bash
+        - -c
+        - |
+          pip install psutil > /dev/null 2>&1
+          python /scripts/memory_stress_generator.py \
+            --scenario random \
+            --max-memory 350 \
+            --duration 90 \
+            --interval 45
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "400Mi"
+            cpu: "300m"
+        volumeMounts:
+        - name: script
+          mountPath: /scripts
+      volumes:
+      - name: script
+        configMap:
+          name: memory-stress-script
+
+---
+# ============================================================================
+# Deployment - Cenário Stress (CPU + Memória)
+# ============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memory-stress-full
+  namespace: default
+  labels:
+    app: memory-stress
+    scenario: full-stress
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: memory-stress
+      scenario: full-stress
+  template:
+    metadata:
+      labels:
+        app: memory-stress
+        scenario: full-stress
+    spec:
+      containers:
+      - name: stress-generator
+        image: python:3.9-slim
+        command:
+        - /bin/bash
+        - -c
+        - |
+          pip install psutil > /dev/null 2>&1
+          python /scripts/memory_stress_generator.py \
+            --scenario stress \
+            --max-memory 450 \
+            --duration 30 \
+            --cpu-threads 4
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: script
+          mountPath: /scripts
+      volumes:
+      - name: script
+        configMap:
+          name: memory-stress-script
+
+---
+# ============================================================================
+# Deployment - Cenário Memory Leak
+# ============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memory-stress-leak
+  namespace: default
+  labels:
+    app: memory-stress
+    scenario: leak
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: memory-stress
+      scenario: leak
+  template:
+    metadata:
+      labels:
+        app: memory-stress
+        scenario: leak
+    spec:
+      containers:
+      - name: stress-generator
+        image: python:3.9-slim
+        command:
+        - /bin/bash
+        - -c
+        - |
+          pip install psutil > /dev/null 2>&1
+          python /scripts/memory_stress_generator.py \
+            --scenario leak \
+            --max-memory 400 \
+            --interval 20
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+        volumeMounts:
+        - name: script
+          mountPath: /scripts
+      volumes:
+      - name: script
+        configMap:
+          name: memory-stress-script
+
+---
+# ============================================================================
+# Deployment - Cenário Oscillating (Carga Oscilante)
+# ============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memory-stress-oscillating
+  namespace: default
+  labels:
+    app: memory-stress
+    scenario: oscillating
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: memory-stress
+      scenario: oscillating
+  template:
+    metadata:
+      labels:
+        app: memory-stress
+        scenario: oscillating
+    spec:
+      containers:
+      - name: stress-generator
+        image: python:3.9-slim
+        command:
+        - /bin/bash
+        - -c
+        - |
+          pip install psutil > /dev/null 2>&1
+          python /scripts/memory_stress_generator.py \
+            --scenario oscillating \
+            --max-memory 380 \
+            --duration 60
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "450Mi"
+            cpu: "300m"
+        volumeMounts:
+        - name: script
+          mountPath: /scripts
+      volumes:
+      - name: script
+        configMap:
+          name: memory-stress-script
+
+---
+# ============================================================================
+# Job - Execução Única de Stress Test
+# ============================================================================
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: memory-stress-job
+  namespace: default
+spec:
+  template:
+    metadata:
+      labels:
+        app: memory-stress
+        type: job
+    spec:
+      containers:
+      - name: stress-generator
+        image: python:3.9-slim
+        command:
+        - /bin/bash
+        - -c
+        - |
+          pip install psutil > /dev/null 2>&1
+          python /scripts/memory_stress_generator.py \
+            --scenario stress \
+            --max-memory 500 \
+            --duration 15 \
+            --cpu-threads 2
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "600Mi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: script
+          mountPath: /scripts
+      volumes:
+      - name: script
+        configMap:
+          name: memory-stress-script
+      restartPolicy: Never
+  backoffLimit: 3
+
+---
+# ============================================================================
+# CronJob - Execução Periódica (Ideal para Coleta de Dados)
+# ============================================================================
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: memory-stress-cron
+  namespace: default
+spec:
+  schedule: "*/30 * * * *"  # A cada 30 minutos
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: memory-stress
+            type: cronjob
+        spec:
+          containers:
+          - name: stress-generator
+            image: python:3.9-slim
+            command:
+            - /bin/bash
+            - -c
+            - |
+              pip install psutil > /dev/null 2>&1
+              python /scripts/memory_stress_generator.py \
+                --scenario random \
+                --max-memory 400 \
+                --duration 20 \
+                --interval 30
+            resources:
+              requests:
+                memory: "64Mi"
+                cpu: "50m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+            volumeMounts:
+            - name: script
+              mountPath: /scripts
+          volumes:
+          - name: script
+            configMap:
+              name: memory-stress-script
+          restartPolicy: OnFailure
+
+---
+# ============================================================================
+# HorizontalPodAutoscaler - Auto-scaling baseado em métricas
+# ============================================================================
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: memory-stress-hpa
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: memory-stress-random
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 60
+
+---
+# ============================================================================
+# Service

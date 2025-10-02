@@ -1,0 +1,4 @@
+,,memory_mb,memory_mb,memory_mb,memory_mb,memory_mb,pod_name,namespace,node
+,,min,max,mean,std,count,first,first,first
+instance,container,,,,,,,,
+192.168.242.134:10250,postgres,20.45,20.66,20.63,0.07,61,postgres-deployment-76d6f4778d-qxm7b,default,x86

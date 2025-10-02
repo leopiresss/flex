@@ -50,7 +50,7 @@ done
 # Perguntar sobre registry local
 echo ""
 read -p "Deseja usar o registry local do MicroK8s? (s/n): " use_registry
-
+# $use_registry = "n"
 if [[ $use_registry == "s" || $use_registry == "S" ]]; then
     if microk8s status | grep -q "registry: enabled"; then
         echo -e "${GREEN}✓ Registry já está habilitado${NC}"
@@ -58,7 +58,7 @@ if [[ $use_registry == "s" || $use_registry == "S" ]]; then
         echo -e "${YELLOW}⚙ Habilitando registry...${NC}"
         microk8s enable registry
     fi
-    
+   
     REGISTRY="localhost:32000"
     IMAGE_NAME="$REGISTRY/memory-stress:latest"
     
@@ -85,7 +85,7 @@ else
     
     # Limpar arquivo temporário
     rm memory-stress.tar
-fi
+ fi
 
 # Aguardar metrics-server estar pronto
 echo ""

@@ -189,7 +189,7 @@ if __name__ == "__main__":
     target_mb = int(os.getenv("MEMORY_TARGET_MB", "500"))
     node_size_kb = int(os.getenv("NODE_SIZE_KB", "1"))
     #duration_seconds = int(os.getenv("DURATION_SECONDS", "3600"))
-    duration_seconds = int(os.getenv("DURATION_SECONDS", "120"))
+    duration_seconds = int(os.getenv("DURATION_SECONDS", "60"))
     
     stress_test = BinaryTreeMemoryStress(
         target_mb=target_mb,

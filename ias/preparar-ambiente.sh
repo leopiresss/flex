@@ -4,8 +4,8 @@ cd ~/flex/ias/microk8s/
 cd ~/flex/ias/cadvisor/
 ./instalar-cadvisor.sh
 
-cd ~/flex/apps/stress-cpu/
-./instalar-stress-cpu.sh
+#cd ~/flex/apps/stress-cpu/
+#./instalar-stress-cpu.sh
 
 cd ~/flex/ias/prometheus_helm/
 make install-all &

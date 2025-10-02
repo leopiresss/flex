@@ -1,0 +1,128 @@
+2025-10-01 15:34:27,569 - INFO - ============================================================
+2025-10-01 15:34:27,569 - INFO - INICIANDO TESTE DE STRESS DE MEMÓRIA
+2025-10-01 15:34:27,569 - INFO - ============================================================
+2025-10-01 15:34:27,569 - INFO - Configuração:
+2025-10-01 15:34:27,570 - INFO -   - Target de memória: 500MB
+2025-10-01 15:34:27,570 - INFO -   - Tamanho do nó: 1.0KB
+2025-10-01 15:34:27,570 - INFO -   - Duração: 600s
+2025-10-01 15:34:27,570 - INFO - ============================================================
+2025-10-01 15:34:27,570 - INFO - Iniciando construção da árvore. Target: 500MB
+2025-10-01 15:34:27,570 - INFO - Nós necessários: 512000
+2025-10-01 15:34:27,570 - INFO - Gerando valores aleatórios para balanceamento...
+2025-10-01 15:34:27,863 - INFO - Nós criados: 10000/512000 | Memória alocada: 9.77MB | Tempo: 0.07s
+2025-10-01 15:34:27,879 - INFO - Nós criados: 20000/512000 | Memória alocada: 19.53MB | Tempo: 0.09s
+2025-10-01 15:34:27,946 - INFO - Nós criados: 30000/512000 | Memória alocada: 29.30MB | Tempo: 0.16s
+2025-10-01 15:34:27,975 - INFO - Nós criados: 40000/512000 | Memória alocada: 39.06MB | Tempo: 0.19s
+2025-10-01 15:34:27,995 - INFO - Nós criados: 50000/512000 | Memória alocada: 48.83MB | Tempo: 0.21s
+2025-10-01 15:34:28,059 - INFO - Nós criados: 60000/512000 | Memória alocada: 58.59MB | Tempo: 0.27s
+2025-10-01 15:34:28,081 - INFO - Nós criados: 70000/512000 | Memória alocada: 68.36MB | Tempo: 0.29s
+2025-10-01 15:34:28,183 - INFO - Nós criados: 80000/512000 | Memória alocada: 78.12MB | Tempo: 0.39s
+2025-10-01 15:34:28,250 - INFO - Nós criados: 90000/512000 | Memória alocada: 87.89MB | Tempo: 0.46s
+2025-10-01 15:34:28,277 - INFO - Nós criados: 100000/512000 | Memória alocada: 97.66MB | Tempo: 0.49s
+2025-10-01 15:34:28,357 - INFO - Nós criados: 110000/512000 | Memória alocada: 107.42MB | Tempo: 0.57s
+2025-10-01 15:34:28,383 - INFO - Nós criados: 120000/512000 | Memória alocada: 117.19MB | Tempo: 0.59s
+2025-10-01 15:34:28,456 - INFO - Nós criados: 130000/512000 | Memória alocada: 126.95MB | Tempo: 0.67s
+2025-10-01 15:34:28,483 - INFO - Nós criados: 140000/512000 | Memória alocada: 136.72MB | Tempo: 0.69s
+2025-10-01 15:34:28,561 - INFO - Nós criados: 150000/512000 | Memória alocada: 146.48MB | Tempo: 0.77s
+2025-10-01 15:34:28,595 - INFO - Nós criados: 160000/512000 | Memória alocada: 156.25MB | Tempo: 0.81s
+2025-10-01 15:34:28,671 - INFO - Nós criados: 170000/512000 | Memória alocada: 166.02MB | Tempo: 0.88s
+2025-10-01 15:34:28,784 - INFO - Nós criados: 180000/512000 | Memória alocada: 175.78MB | Tempo: 0.99s
+2025-10-01 15:34:28,876 - INFO - Nós criados: 190000/512000 | Memória alocada: 185.55MB | Tempo: 1.09s
+2025-10-01 15:34:28,945 - INFO - Nós criados: 200000/512000 | Memória alocada: 195.31MB | Tempo: 1.16s
+2025-10-01 15:34:28,976 - INFO - Nós criados: 210000/512000 | Memória alocada: 205.08MB | Tempo: 1.19s
+2025-10-01 15:34:29,058 - INFO - Nós criados: 220000/512000 | Memória alocada: 214.84MB | Tempo: 1.27s
+2025-10-01 15:34:29,089 - INFO - Nós criados: 230000/512000 | Memória alocada: 224.61MB | Tempo: 1.30s
+2025-10-01 15:34:29,169 - INFO - Nós criados: 240000/512000 | Memória alocada: 234.38MB | Tempo: 1.38s
+2025-10-01 15:34:29,247 - INFO - Nós criados: 250000/512000 | Memória alocada: 244.14MB | Tempo: 1.46s
+2025-10-01 15:34:29,279 - INFO - Nós criados: 260000/512000 | Memória alocada: 253.91MB | Tempo: 1.49s
+2025-10-01 15:34:29,461 - INFO - Nós criados: 270000/512000 | Memória alocada: 263.67MB | Tempo: 1.67s
+2025-10-01 15:34:29,492 - INFO - Nós criados: 280000/512000 | Memória alocada: 273.44MB | Tempo: 1.70s
+2025-10-01 15:34:29,573 - INFO - Nós criados: 290000/512000 | Memória alocada: 283.20MB | Tempo: 1.78s
+2025-10-01 15:34:29,653 - INFO - Nós criados: 300000/512000 | Memória alocada: 292.97MB | Tempo: 1.86s
+2025-10-01 15:34:29,683 - INFO - Nós criados: 310000/512000 | Memória alocada: 302.73MB | Tempo: 1.89s
+2025-10-01 15:34:29,766 - INFO - Nós criados: 320000/512000 | Memória alocada: 312.50MB | Tempo: 1.98s
+2025-10-01 15:34:29,847 - INFO - Nós criados: 330000/512000 | Memória alocada: 322.27MB | Tempo: 2.06s
+2025-10-01 15:34:29,879 - INFO - Nós criados: 340000/512000 | Memória alocada: 332.03MB | Tempo: 2.09s
+2025-10-01 15:34:29,961 - INFO - Nós criados: 350000/512000 | Memória alocada: 341.80MB | Tempo: 2.17s
+2025-10-01 15:34:30,166 - INFO - Nós criados: 360000/512000 | Memória alocada: 351.56MB | Tempo: 2.38s
+2025-10-01 15:34:30,246 - INFO - Nós criados: 370000/512000 | Memória alocada: 361.33MB | Tempo: 2.46s
+2025-10-01 15:34:30,281 - INFO - Nós criados: 380000/512000 | Memória alocada: 371.09MB | Tempo: 2.49s
+2025-10-01 15:34:30,369 - INFO - Nós criados: 390000/512000 | Memória alocada: 380.86MB | Tempo: 2.58s
+2025-10-01 15:34:30,454 - INFO - Nós criados: 400000/512000 | Memória alocada: 390.62MB | Tempo: 2.66s
+2025-10-01 15:34:30,487 - INFO - Nós criados: 410000/512000 | Memória alocada: 400.39MB | Tempo: 2.70s
+2025-10-01 15:34:30,570 - INFO - Nós criados: 420000/512000 | Memória alocada: 410.16MB | Tempo: 2.78s
+2025-10-01 15:34:30,653 - INFO - Nós criados: 430000/512000 | Memória alocada: 419.92MB | Tempo: 2.86s
+2025-10-01 15:34:30,693 - INFO - Nós criados: 440000/512000 | Memória alocada: 429.69MB | Tempo: 2.90s
+2025-10-01 15:34:30,777 - INFO - Nós criados: 450000/512000 | Memória alocada: 439.45MB | Tempo: 2.99s
+2025-10-01 15:34:31,049 - INFO - Nós criados: 460000/512000 | Memória alocada: 449.22MB | Tempo: 3.26s
+2025-10-01 15:34:31,084 - INFO - Nós criados: 470000/512000 | Memória alocada: 458.98MB | Tempo: 3.29s
+2025-10-01 15:34:31,168 - INFO - Nós criados: 480000/512000 | Memória alocada: 468.75MB | Tempo: 3.38s
+2025-10-01 15:34:31,250 - INFO - Nós criados: 490000/512000 | Memória alocada: 478.52MB | Tempo: 3.46s
+2025-10-01 15:34:31,283 - INFO - Nós criados: 500000/512000 | Memória alocada: 488.28MB | Tempo: 3.49s
+2025-10-01 15:34:31,367 - INFO - Nós criados: 510000/512000 | Memória alocada: 498.05MB | Tempo: 3.58s
+2025-10-01 15:34:31,375 - INFO - Árvore construída! Total de nós: 512000
+2025-10-01 15:34:31,375 - INFO - Memória total alocada: 500.00MB
+2025-10-01 15:34:31,375 - INFO - Tempo total de construção: 3.59s
+2025-10-01 15:34:31,377 - INFO - Mantendo pressão de memória por 600 segundos...
+2025-10-01 15:34:31,383 - INFO - Iteração 1 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 599s
+2025-10-01 15:34:41,777 - INFO - Iteração 2 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 589s
+2025-10-01 15:34:51,783 - INFO - Iteração 3 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 579s
+2025-10-01 15:35:02,180 - INFO - Iteração 4 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 569s
+2025-10-01 15:35:12,187 - INFO - Iteração 5 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 559s
+2025-10-01 15:35:22,578 - INFO - Iteração 6 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 549s
+2025-10-01 15:35:32,585 - INFO - Iteração 7 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 538s
+2025-10-01 15:35:42,980 - INFO - Iteração 8 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 528s
+2025-10-01 15:35:52,986 - INFO - Iteração 9 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 518s
+2025-10-01 15:36:03,362 - INFO - Iteração 10 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 508s
+2025-10-01 15:36:13,369 - INFO - Iteração 11 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 498s
+2025-10-01 15:36:23,782 - INFO - Iteração 12 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 488s
+2025-10-01 15:36:33,789 - INFO - Iteração 13 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 477s
+2025-10-01 15:36:44,245 - INFO - Iteração 14 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 467s
+2025-10-01 15:36:54,251 - INFO - Iteração 15 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 457s
+2025-10-01 15:37:04,585 - INFO - Iteração 16 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 447s
+2025-10-01 15:37:14,592 - INFO - Iteração 17 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 436s
+2025-10-01 15:37:24,870 - INFO - Iteração 18 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 426s
+2025-10-01 15:37:34,877 - INFO - Iteração 19 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 416s
+2025-10-01 15:37:45,181 - INFO - Iteração 20 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 406s
+2025-10-01 15:37:55,187 - INFO - Iteração 21 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 396s
+2025-10-01 15:38:05,476 - INFO - Iteração 22 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 386s
+2025-10-01 15:38:15,488 - INFO - Iteração 23 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 375s
+2025-10-01 15:38:25,765 - INFO - Iteração 24 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 365s
+2025-10-01 15:38:35,771 - INFO - Iteração 25 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 355s
+2025-10-01 15:38:46,077 - INFO - Iteração 26 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 345s
+2025-10-01 15:38:56,084 - INFO - Iteração 27 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 335s
+2025-10-01 15:39:06,365 - INFO - Iteração 28 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 325s
+2025-10-01 15:39:16,371 - INFO - Iteração 29 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 315s
+2025-10-01 15:39:26,667 - INFO - Iteração 30 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 305s
+2025-10-01 15:39:36,675 - INFO - Iteração 31 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 294s
+2025-10-01 15:39:46,972 - INFO - Iteração 32 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 284s
+2025-10-01 15:39:56,978 - INFO - Iteração 33 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 274s
+2025-10-01 15:40:07,267 - INFO - Iteração 34 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 264s
+2025-10-01 15:40:17,275 - INFO - Iteração 35 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 254s
+2025-10-01 15:40:27,573 - INFO - Iteração 36 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 244s
+2025-10-01 15:40:37,579 - INFO - Iteração 37 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 233s
+2025-10-01 15:40:47,873 - INFO - Iteração 38 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 223s
+2025-10-01 15:40:57,879 - INFO - Iteração 39 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 213s
+2025-10-01 15:41:08,167 - INFO - Iteração 40 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 203s
+2025-10-01 15:41:18,174 - INFO - Iteração 41 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 193s
+2025-10-01 15:41:28,478 - INFO - Iteração 42 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 183s
+2025-10-01 15:41:38,485 - INFO - Iteração 43 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 172s
+2025-10-01 15:41:48,778 - INFO - Iteração 44 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 162s
+2025-10-01 15:41:58,785 - INFO - Iteração 45 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 152s
+2025-10-01 15:42:09,075 - INFO - Iteração 46 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 142s
+2025-10-01 15:42:19,082 - INFO - Iteração 47 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 132s
+2025-10-01 15:42:29,368 - INFO - Iteração 48 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 122s
+2025-10-01 15:42:39,374 - INFO - Iteração 49 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 112s
+2025-10-01 15:42:49,686 - INFO - Iteração 50 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 102s
+2025-10-01 15:42:59,695 - INFO - Iteração 51 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 91s
+2025-10-01 15:43:09,968 - INFO - Iteração 52 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 81s
+2025-10-01 15:43:19,974 - INFO - Iteração 53 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 71s
+2025-10-01 15:43:30,263 - INFO - Iteração 54 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 61s
+2025-10-01 15:43:40,271 - INFO - Iteração 55 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 51s
+2025-10-01 15:43:50,568 - INFO - Iteração 56 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 41s
+2025-10-01 15:44:00,575 - INFO - Iteração 57 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 30s
+2025-10-01 15:44:10,887 - INFO - Iteração 58 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 20s
+2025-10-01 15:44:20,892 - INFO - Iteração 59 | Acesso aleatório | Nós acessados: 5000 | Memória: 500.00MB | Tempo restante: 10s
+2025-10-01 15:44:31,168 - INFO - Iteração 60 | Travessia completa | Nós acessados: 512000 | Memória: 500.00MB | Tempo restante: 0s
+2025-10-01 15:44:41,169 - INFO - Teste de stress concluído!
+2025-10-01 15:44:41,169 - INFO - Encerrando aplicação...

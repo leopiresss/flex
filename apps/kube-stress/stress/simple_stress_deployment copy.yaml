@@ -1,0 +1,273 @@
+# ============================================================================
+# Alternativa Simples: Usando stress-ng (sem Python)
+# ============================================================================
+
+---
+# Deployment 1: Stress de Memória Constante
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memory-stress
+  labels:
+    app: memory-stress
+    type: constant
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: memory-stress
+      type: constant
+  template:
+    metadata:
+      labels:
+        app: memory-stress
+        type: constant
+    spec:
+      containers:
+      - name: stress
+        image: polinux/stress
+        command:
+        - stress
+        args:
+        - --vm
+        - "1"
+        - --vm-bytes
+        - "256M"
+        - --vm-hang
+        - "0"
+        - --timeout
+        - "3600s"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+---
+# Deployment 2: Stress de CPU
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cpu-stress
+  labels:
+    app: memory-stress
+    type: cpu
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: memory-stress
+      type: cpu
+  template:
+    metadata:
+      labels:
+        app: memory-stress
+        type: cpu
+    spec:
+      containers:
+      - name: stress
+        image: polinux/stress
+        command:
+        - stress
+        args:
+        - --cpu
+        - "2"
+        - --timeout
+        - "3600s"
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "1000m"
+
+---
+# Deployment 3: Stress Combinado (Memória + CPU)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: combined-stress
+  labels:
+    app: memory-stress
+    type: combined
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: memory-stress
+      type: combined
+  template:
+    metadata:
+      labels:
+        app: memory-stress
+        type: combined
+    spec:
+      containers:
+      - name: stress
+        image: polinux/stress
+        command:
+        - stress
+        args:
+        - --vm
+        - "1"
+        - --vm-bytes
+        - "300M"
+        - --cpu
+        - "2"
+        - --timeout
+        - "3600s"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "1000m"
+
+---
+# Deployment 4: Stress Variável (com script bash)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: variable-stress
+  labels:
+    app: memory-stress
+    type: variable
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: memory-stress
+      type: variable
+  template:
+    metadata:
+      labels:
+        app: memory-stress
+        type: variable
+    spec:
+      containers:
+      - name: stress
+        image: polinux/stress
+        command:
+        - /bin/bash
+        - -c
+        - |
+          echo "Iniciando stress variável..."
+          while true; do
+            # Pico de 5 minutos
+            echo "PICO: Alta carga"
+            stress --vm 1 --vm-bytes 400M --cpu 2 --timeout 300s &
+            sleep 300
+            
+            # Descanso de 3 minutos
+            echo "DESCANSO: Baixa carga"
+            stress --vm 1 --vm-bytes 100M --timeout 180s &
+            sleep 180
+            
+            # Espera processos terminarem
+            wait
+          done
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "1000m"
+
+---
+# Deployment 5: Memory Leak Simulation
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: leak-simulation
+  labels:
+    app: memory-stress
+    type: leak
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: memory-stress
+      type: leak
+  template:
+    metadata:
+      labels:
+        app: memory-stress
+        type: leak
+    spec:
+      containers:
+      - name: stress
+        image: bash:latest
+        command:
+        - /bin/bash
+        - -c
+        - |
+          #!/bin/bash
+          echo "Simulando memory leak..."
+          memory_mb=50
+          
+          while [ $memory_mb -lt 450 ]; do
+            echo "Alocando ${memory_mb}MB..."
+            
+            # Aloca memória e mantém referência
+            dd if=/dev/zero of=/tmp/mem_${memory_mb} bs=1M count=${memory_mb} 2>/dev/null
+            
+            echo "Total alocado: ${memory_mb}MB"
+            memory_mb=$((memory_mb + 25))
+            
+            sleep 30
+          done
+          
+          echo "Limite atingido! Mantendo carga..."
+          sleep 3600
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+
+---
+# ============================================================================
+# GUIA RÁPIDO DE USO
+# ============================================================================
+
+# 1. Aplicar todos os deployments:
+#    kubectl apply -f simple_stress_deployment.yaml
+
+# 2. Verificar status:
+#    kubectl get pods -l app=memory-stress
+#    kubectl top pods -l app=memory-stress
+
+# 3. Ver logs:
+#    kubectl logs -f deployment/memory-stress
+
+# 4. Escalar:
+#    kubectl scale deployment memory-stress --replicas=5
+
+# 5. Deletar tudo:
+#    kubectl delete deployment -l app=memory-stress
+
+# ============================================================================
+# COMANDOS ÚTEIS STRESS-NG
+# ============================================================================
+
+# Stress de memória (256MB por 1 hora):
+# stress --vm 1 --vm-bytes 256M --timeout 3600s
+
+# Stress de CPU (4 workers):
+# stress --cpu 4 --timeout 3600s
+
+# Stress combinado:
+# stress --vm 2 --vm-bytes 512M --cpu 4 --timeout 3600s
+
+# Stress de I/O:
+# stress --io 4 --timeout 3600s
+
+# Stress com fork bombs (CUIDADO!):
+# stress --vm 8 --vm-bytes 128M --cpu 8 --timeout 300s
