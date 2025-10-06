@@ -72,6 +72,19 @@ RESOURCE_NOME_SISTEMA="PROMETHEUS"
 
 echo " ⚠️ -  Executando port-forward para o Prometheus..."
 # Chama a função principal da biblioteca, passando os argumentos necessários
+echo "executar_port_forward \
+    $RESOURCE_TYPE \
+    $RESOURCE_NAME \
+    $NAMESPACE\
+    $LOCAL_PORT \
+    $REMOTE_PORT \
+    $LOCAL_INTERFACE \
+    $PID_FILE \
+    $NET_IFACE \
+    $RESOURCE_NOME_SISTEMA"
+
+
+
 executar_port_forward \
     "$RESOURCE_TYPE" \
     "$RESOURCE_NAME" \

@@ -36,6 +36,7 @@ if [ ! -z "$TOKEN" ]; then
     echo "$TOKEN"
     echo "===================="
     echo ""
+    echo "$TOKEN" > token.txt
     echo "💡 DICA: Para ter um token permanente, execute:"
     echo "   ./create-permanent-token.sh"
 else

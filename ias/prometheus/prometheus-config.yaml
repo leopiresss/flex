@@ -8,7 +8,7 @@ data:
     global:
       scrape_interval: 15s
     
-    scrape_configs:
+    sscrape_config:
       - job_name: 'kube-state-metrics'
         kubernetes_sd_configs:
           - role: endpoints

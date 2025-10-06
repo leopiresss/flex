@@ -1,4 +1,5 @@
 # Recriar tudo
+kubectl apply -f postgres-namespace.yaml
 kubectl apply -f postgres-configmap.yaml
 kubectl apply -f postgres-pv-pvc.yaml
 kubectl apply -f postgres-deployment.yaml  # (versão com ConfigMap)

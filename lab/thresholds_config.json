@@ -1,0 +1,17 @@
+{
+  "memory": {
+    "warning": 40.0,
+    "overload": 50.0,
+    "critical": 60.0
+  },
+  "cpu": {
+    "warning": 70.0,
+    "overload": 80.0,
+    "critical": 90.0
+  },
+  "disk": {
+    "warning": 75.0,
+    "overload": 85.0,
+    "critical": 95.0
+  }
+}

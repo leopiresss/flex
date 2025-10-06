@@ -2,6 +2,7 @@
 Sistema de Coleta de Métricas para ML - Detecção de Sobrecarga em Kubernetes
 Autor: Sistema de Monitoramento
 Descrição: Coleta métricas do cAdvisor e gera dataset estruturado para Machine Learning
+          com thresholds configuráveis para definição de sobrecarga
 """
 
 import requests
@@ -10,6 +11,7 @@ import numpy as np
 from datetime import datetime, timedelta
 import json
 import logging
+import argparse
 from typing import Dict, List, Optional, Tuple
 import warnings
 warnings.filterwarnings('ignore')
@@ -20,6 +22,112 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+
+class ThresholdConfig:
+    """Classe para gerenciar configurações de thresholds"""
+    
+    def __init__(self, 
+                 memory_warning: float = 70.0,
+                 memory_overload: float = 80.0, 
+                 memory_critical: float = 90.0,
+                 cpu_warning: float = 70.0,
+                 cpu_overload: float = 80.0,
+                 cpu_critical: float = 90.0,
+                 disk_warning: float = 75.0,
+                 disk_overload: float = 85.0,
+                 disk_critical: float = 95.0):
+        """
+        Inicializa configuração de thresholds
+        
+        Args:
+            memory_warning: Threshold de warning para memória (%)
+            memory_overload: Threshold de sobrecarga para memória (%)
+            memory_critical: Threshold crítico para memória (%)
+            cpu_warning: Threshold de warning para CPU (%)
+            cpu_overload: Threshold de sobrecarga para CPU (%)
+            cpu_critical: Threshold crítico para CPU (%)
+            disk_warning: Threshold de warning para disco (%)
+            disk_overload: Threshold de sobrecarga para disco (%)
+            disk_critical: Threshold crítico para disco (%)
+        """
+        # Validação
+        self._validate_threshold(memory_warning, memory_overload, memory_critical, "Memory")
+        self._validate_threshold(cpu_warning, cpu_overload, cpu_critical, "CPU")
+        self._validate_threshold(disk_warning, disk_overload, disk_critical, "Disk")
+        
+        # Memória
+        self.memory_warning = memory_warning
+        self.memory_overload = memory_overload
+        self.memory_critical = memory_critical
+        
+        # CPU
+        self.cpu_warning = cpu_warning
+        self.cpu_overload = cpu_overload
+        self.cpu_critical = cpu_critical
+        
+        # Disco
+        self.disk_warning = disk_warning
+        self.disk_overload = disk_overload
+        self.disk_critical = disk_critical
+        
+        logger.info("📊 Thresholds configurados:")
+        logger.info(f"   Memory: Warning={memory_warning}%, Overload={memory_overload}%, Critical={memory_critical}%")
+        logger.info(f"   CPU: Warning={cpu_warning}%, Overload={cpu_overload}%, Critical={cpu_critical}%")
+        logger.info(f"   Disk: Warning={disk_warning}%, Overload={disk_overload}%, Critical={disk_critical}%")
+    
+    def _validate_threshold(self, warning: float, overload: float, critical: float, name: str):
+        """Valida se os thresholds estão em ordem crescente"""
+        if not (0 <= warning < overload < critical <= 100):
+            raise ValueError(
+                f"Thresholds de {name} inválidos! "
+                f"Devem estar entre 0-100 e em ordem: warning < overload < critical. "
+                f"Valores fornecidos: warning={warning}, overload={overload}, critical={critical}"
+            )
+    
+    def to_dict(self) -> Dict:
+        """Retorna thresholds como dicionário"""
+        return {
+            'memory': {
+                'warning': self.memory_warning,
+                'overload': self.memory_overload,
+                'critical': self.memory_critical
+            },
+            'cpu': {
+                'warning': self.cpu_warning,
+                'overload': self.cpu_overload,
+                'critical': self.cpu_critical
+            },
+            'disk': {
+                'warning': self.disk_warning,
+                'overload': self.disk_overload,
+                'critical': self.disk_critical
+            }
+        }
+    
+    def save_to_file(self, filepath: str = 'thresholds_config.json'):
+        """Salva configuração em arquivo JSON"""
+        with open(filepath, 'w') as f:
+            json.dump(self.to_dict(), f, indent=2)
+        logger.info(f"💾 Thresholds salvos em: {filepath}")
+    
+    @classmethod
+    def load_from_file(cls, filepath: str = 'thresholds_config.json'):
+        """Carrega configuração de arquivo JSON"""
+        with open(filepath, 'r') as f:
+            config = json.load(f)
+        
+        return cls(
+            memory_warning=config['memory']['warning'],
+            memory_overload=config['memory']['overload'],
+            memory_critical=config['memory']['critical'],
+            cpu_warning=config['cpu']['warning'],
+            cpu_overload=config['cpu']['overload'],
+            cpu_critical=config['cpu']['critical'],
+            disk_warning=config['disk']['warning'],
+            disk_overload=config['disk']['overload'],
+            disk_critical=config['disk']['critical']
+        )
 
 
 class PrometheusConnector:
@@ -56,20 +164,6 @@ class PrometheusConnector:
             return response.json()
         except Exception as e:
             logger.error(f"Erro ao executar query: {e}")
-            return None
-    
-    def query_instant(self, query: str) -> Optional[Dict]:
-        """Executa query instantânea"""
-        try:
-            response = requests.get(
-                f"{self.api_url}/query",
-                params={'query': query},
-                timeout=self.timeout
-            )
-            response.raise_for_status()
-            return response.json()
-        except Exception as e:
-            logger.error(f"Erro ao executar query instantânea: {e}")
             return None
 
 
@@ -180,7 +274,8 @@ class MetricsExtractor:
 class FeatureEngineer:
     """Classe para engenharia de features para ML"""
     
-    def __init__(self):
+    def __init__(self, thresholds: ThresholdConfig):
+        self.thresholds = thresholds
         self.feature_columns = []
     
     def create_ml_features(self, df_raw: pd.DataFrame) -> pd.DataFrame:
@@ -217,7 +312,7 @@ class FeatureEngineer:
         # Adiciona features estatísticas (rolling)
         df_features = self._add_statistical_features(df_features)
         
-        # Cria labels para ML (target)
+        # Cria labels para ML (target) - USA THRESHOLDS CONFIGURÁVEIS
         df_features = self._create_target_labels(df_features)
         
         logger.info(f"✅ Features finais: {df_features.shape}")
@@ -238,7 +333,7 @@ class FeatureEngineer:
         if 'cpu_usage_total' in df.columns and 'cpu_quota' in df.columns and 'cpu_period' in df.columns:
             cpu_limit_cores = (df['cpu_quota'] / df['cpu_period'])
             df['cpu_usage_percent'] = (df['cpu_usage_total'] / cpu_limit_cores) * 100
-            df['cpu_usage_percent'] = df['cpu_usage_percent'].clip(0, 200)  # Pode ultrapassar em burst
+            df['cpu_usage_percent'] = df['cpu_usage_percent'].clip(0, 200)
         
         # Percentual de uso de disco
         if 'fs_usage_bytes' in df.columns and 'fs_limit_bytes' in df.columns:
@@ -323,60 +418,81 @@ class FeatureEngineer:
     
     def _create_target_labels(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Cria labels (targets) para treinamento de ML
+        Cria labels (targets) para treinamento de ML usando thresholds configuráveis
         
         Labels criadas:
-        - memory_overload: 1 se memória > 80%, 0 caso contrário
-        - cpu_overload: 1 se CPU > 80%, 0 caso contrário
-        - critical_overload: 1 se memória > 90% OU CPU > 90%
-        - overload_severity: 0 (normal), 1 (warning), 2 (critical)
+        - memory_overload: 1 se memória > threshold_overload, 0 caso contrário
+        - cpu_overload: 1 se CPU > threshold_overload, 0 caso contrário
+        - disk_overload: 1 se disco > threshold_overload, 0 caso contrário
+        - memory_critical: 1 se memória > threshold_critical
+        - cpu_critical: 1 se CPU > threshold_critical
+        - disk_critical: 1 se disco > threshold_critical
+        - critical_overload: 1 se qualquer recurso está crítico
+        - overload_severity: 0 (normal), 1 (warning), 2 (overload), 3 (critical)
         """
-        logger.info("Criando labels de target...")
+        logger.info("Criando labels de target com thresholds configuráveis...")
         
-        # Label de sobrecarga de memória
+        # Labels de sobrecarga de memória
         if 'memory_usage_percent' in df.columns:
-            df['memory_overload'] = (df['memory_usage_percent'] > 80).astype(int)
-            df['memory_critical'] = (df['memory_usage_percent'] > 90).astype(int)
+            df['memory_warning'] = (df['memory_usage_percent'] > self.thresholds.memory_warning).astype(int)
+            df['memory_overload'] = (df['memory_usage_percent'] > self.thresholds.memory_overload).astype(int)
+            df['memory_critical'] = (df['memory_usage_percent'] > self.thresholds.memory_critical).astype(int)
         else:
+            df['memory_warning'] = 0
             df['memory_overload'] = 0
             df['memory_critical'] = 0
         
-        # Label de sobrecarga de CPU
+        # Labels de sobrecarga de CPU
         if 'cpu_usage_percent' in df.columns:
-            df['cpu_overload'] = (df['cpu_usage_percent'] > 80).astype(int)
-            df['cpu_critical'] = (df['cpu_usage_percent'] > 90).astype(int)
+            df['cpu_warning'] = (df['cpu_usage_percent'] > self.thresholds.cpu_warning).astype(int)
+            df['cpu_overload'] = (df['cpu_usage_percent'] > self.thresholds.cpu_overload).astype(int)
+            df['cpu_critical'] = (df['cpu_usage_percent'] > self.thresholds.cpu_critical).astype(int)
         else:
+            df['cpu_warning'] = 0
             df['cpu_overload'] = 0
             df['cpu_critical'] = 0
         
+        # Labels de sobrecarga de disco
+        if 'disk_usage_percent' in df.columns:
+            df['disk_warning'] = (df['disk_usage_percent'] > self.thresholds.disk_warning).astype(int)
+            df['disk_overload'] = (df['disk_usage_percent'] > self.thresholds.disk_overload).astype(int)
+            df['disk_critical'] = (df['disk_usage_percent'] > self.thresholds.disk_critical).astype(int)
+        else:
+            df['disk_warning'] = 0
+            df['disk_overload'] = 0
+            df['disk_critical'] = 0
+        
         # Label combinada de sobrecarga crítica
         df['critical_overload'] = ((df['memory_critical'] == 1) | 
-                                   (df['cpu_critical'] == 1)).astype(int)
+                                   (df['cpu_critical'] == 1) |
+                                   (df['disk_critical'] == 1)).astype(int)
         
-        # Severidade de sobrecarga (multi-class)
+        # Severidade de sobrecarga (multi-class: 0=normal, 1=warning, 2=overload, 3=critical)
         df['overload_severity'] = 0  # Normal
         
-        if 'memory_usage_percent' in df.columns or 'cpu_usage_percent' in df.columns:
-            # Warning: CPU > 70% OU Memória > 70%
-            warning_condition = False
-            if 'memory_usage_percent' in df.columns:
-                warning_condition |= (df['memory_usage_percent'] > 70)
-            if 'cpu_usage_percent' in df.columns:
-                warning_condition |= (df['cpu_usage_percent'] > 70)
-            df.loc[warning_condition, 'overload_severity'] = 1
-            
-            # Critical: CPU > 90% OU Memória > 90%
-            critical_condition = False
-            if 'memory_usage_percent' in df.columns:
-                critical_condition |= (df['memory_usage_percent'] > 90)
-            if 'cpu_usage_percent' in df.columns:
-                critical_condition |= (df['cpu_usage_percent'] > 90)
-            df.loc[critical_condition, 'overload_severity'] = 2
+        # Warning
+        warning_condition = ((df['memory_warning'] == 1) | 
+                            (df['cpu_warning'] == 1) | 
+                            (df['disk_warning'] == 1))
+        df.loc[warning_condition, 'overload_severity'] = 1
+        
+        # Overload
+        overload_condition = ((df['memory_overload'] == 1) | 
+                             (df['cpu_overload'] == 1) | 
+                             (df['disk_overload'] == 1))
+        df.loc[overload_condition, 'overload_severity'] = 2
+        
+        # Critical (sobrescreve overload)
+        critical_condition = ((df['memory_critical'] == 1) | 
+                             (df['cpu_critical'] == 1) | 
+                             (df['disk_critical'] == 1))
+        df.loc[critical_condition, 'overload_severity'] = 3
         
         # Estatísticas dos labels
-        logger.info("\n📊 Distribuição dos Labels:")
-        logger.info(f"   Memory Overload: {df['memory_overload'].sum()} / {len(df)} ({df['memory_overload'].mean()*100:.2f}%)")
-        logger.info(f"   CPU Overload: {df['cpu_overload'].sum()} / {len(df)} ({df['cpu_overload'].mean()*100:.2f}%)")
+        logger.info("\n📊 Distribuição dos Labels (usando thresholds configuráveis):")
+        logger.info(f"   Memory Overload (>{self.thresholds.memory_overload}%): {df['memory_overload'].sum()} / {len(df)} ({df['memory_overload'].mean()*100:.2f}%)")
+        logger.info(f"   CPU Overload (>{self.thresholds.cpu_overload}%): {df['cpu_overload'].sum()} / {len(df)} ({df['cpu_overload'].mean()*100:.2f}%)")
+        logger.info(f"   Disk Overload (>{self.thresholds.disk_overload}%): {df['disk_overload'].sum()} / {len(df)} ({df['disk_overload'].mean()*100:.2f}%)")
         logger.info(f"   Critical Overload: {df['critical_overload'].sum()} / {len(df)} ({df['critical_overload'].mean()*100:.2f}%)")
         logger.info(f"\n   Severity Distribution:")
         logger.info(f"{df['overload_severity'].value_counts().sort_index()}")
@@ -387,10 +503,23 @@ class FeatureEngineer:
 class MLDatasetGenerator:
     """Classe principal para gerar dataset completo para ML"""
     
-    def __init__(self, prometheus_url: str):
+    def __init__(self, prometheus_url: str, thresholds: Optional[ThresholdConfig] = None):
+        """
+        Inicializa gerador de dataset
+        
+        Args:
+            prometheus_url: URL do Prometheus
+            thresholds: Configuração de thresholds (usa padrão se None)
+        """
         self.connector = PrometheusConnector(prometheus_url)
         self.extractor = MetricsExtractor(self.connector)
-        self.engineer = FeatureEngineer()
+        
+        # Usa thresholds padrão se não fornecido
+        if thresholds is None:
+            thresholds = ThresholdConfig()
+        
+        self.thresholds = thresholds
+        self.engineer = FeatureEngineer(thresholds)
         self.dataset = None
     
     def generate_dataset(self, duration_minutes: int = 60, step: str = '30s',
@@ -483,6 +612,9 @@ class MLDatasetGenerator:
             import os
             size_mb = os.path.getsize(file_path) / 1024 / 1024
             logger.info(f"   ✅ {file_path} ({size_mb:.2f} MB)")
+        
+        # Salva também a configuração de thresholds
+        self.thresholds.save_to_file(f"{output_path}_thresholds.json")
     
     def get_dataset_info(self) -> Dict:
         """Retorna informações do dataset gerado"""
@@ -497,9 +629,11 @@ class MLDatasetGenerator:
                 'start': str(self.dataset['timestamp'].min()),
                 'end': str(self.dataset['timestamp'].max()),
             },
+            'thresholds_used': self.thresholds.to_dict(),
             'target_distribution': {
                 'memory_overload': int(self.dataset['memory_overload'].sum()),
                 'cpu_overload': int(self.dataset['cpu_overload'].sum()),
+                'disk_overload': int(self.dataset['disk_overload'].sum()),
                 'critical_overload': int(self.dataset['critical_overload'].sum()),
             },
             'features': list(self.dataset.columns)
@@ -525,9 +659,17 @@ class MLDatasetGenerator:
         print(f"   • Pods monitorados: {info['pods_monitored']}")
         print(f"   • Período: {info['time_range']['start']} até {info['time_range']['end']}")
         
+        print(f"\n⚙️  Thresholds Utilizados:")
+        for resource, thresholds in info['thresholds_used'].items():
+            print(f"   {resource.capitalize()}:")
+            print(f"      Warning: {thresholds['warning']}%")
+            print(f"      Overload: {thresholds['overload']}%")
+            print(f"      Critical: {thresholds['critical']}%")
+        
         print(f"\n🎯 Distribuição dos Targets:")
         print(f"   • Memory Overload: {info['target_distribution']['memory_overload']}")
         print(f"   • CPU Overload: {info['target_distribution']['cpu_overload']}")
+        print(f"   • Disk Overload: {info['target_distribution']['disk_overload']}")
         print(f"   • Critical Overload: {info['target_distribution']['critical_overload']}")
         
         print(f"\n📋 Features Disponíveis ({len(info['features'])}):")
@@ -549,48 +691,176 @@ class MLDatasetGenerator:
                 print(f"      Max: {self.dataset[feature].max():.2f}")
 
 
+def parse_arguments():
+    """Parse argumentos da linha de comando"""
+    parser = argparse.ArgumentParser(
+        description='Gerador de Dataset ML para Detecção de Sobrecarga em Kubernetes',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Exemplos de uso:
+
+  # Uso básico (thresholds padrão)
+  python sistema_coleta_dados.py --prometheus-url http://localhost:9090
+
+  # Com thresholds personalizados
+  python sistema_coleta_dados.py \
+    --prometheus-url http://localhost:9090 \
+    --memory-overload 85 \
+    --cpu-overload 85 \
+    --memory-critical 95
+
+  # Coleta longa com filtros
+  python sistema_coleta_dados.py \
+    --prometheus-url http://localhost:9090 \
+    --duration 120 \
+    --step 15s \
+    --pod-filter "stress-.*" \
+    --namespace stress-test
+
+  # Carregar thresholds de arquivo
+  python sistema_coleta_dados.py \
+    --prometheus-url http://localhost:9090 \
+    --thresholds-file custom_thresholds.json
+
+  # Salvar thresholds atuais
+  python sistema_coleta_dados.py \
+    --save-thresholds-only \
+    --memory-overload 75 \
+    --cpu-overload 75 \
+    --output thresholds.json
+        """
+    )
+    
+    # Argumentos principais
+    parser.add_argument('--prometheus-url', type=str, default='http://localhost:9090',
+                       help='URL do Prometheus (default: http://localhost:9090)')
+    
+    parser.add_argument('--duration', type=int, default=60,
+                       help='Duração da coleta em minutos (default: 60)')
+    
+    parser.add_argument('--step', type=str, default='30s',
+                       help='Intervalo entre medições (default: 30s)')
+    
+    parser.add_argument('--pod-filter', type=str, default=None,
+                       help='Filtro regex para pods (ex: "stress-.*")')
+    
+    parser.add_argument('--namespace', type=str, default=None,
+                       help='Namespace específico')
+    
+    parser.add_argument('--output', type=str, default='kubernetes_ml_dataset',
+                       help='Nome base do arquivo de saída (default: kubernetes_ml_dataset)')
+    
+    parser.add_argument('--formats', nargs='+', default=['csv', 'parquet'],
+                       choices=['csv', 'parquet', 'json'],
+                       help='Formatos de saída (default: csv parquet)')
+    
+    # Thresholds de Memória
+    memory_group = parser.add_argument_group('Thresholds de Memória')
+    memory_group.add_argument('--memory-warning', type=float, default=70.0,
+                             help='Threshold de warning para memória em %% (default: 70)')
+    memory_group.add_argument('--memory-overload', type=float, default=80.0,
+                             help='Threshold de sobrecarga para memória em %% (default: 80)')
+    memory_group.add_argument('--memory-critical', type=float, default=90.0,
+                             help='Threshold crítico para memória em %% (default: 90)')
+    
+    # Thresholds de CPU
+    cpu_group = parser.add_argument_group('Thresholds de CPU')
+    cpu_group.add_argument('--cpu-warning', type=float, default=70.0,
+                          help='Threshold de warning para CPU em %% (default: 70)')
+    cpu_group.add_argument('--cpu-overload', type=float, default=80.0,
+                          help='Threshold de sobrecarga para CPU em %% (default: 80)')
+    cpu_group.add_argument('--cpu-critical', type=float, default=90.0,
+                          help='Threshold crítico para CPU em %% (default: 90)')
+    
+    # Thresholds de Disco
+    disk_group = parser.add_argument_group('Thresholds de Disco')
+    disk_group.add_argument('--disk-warning', type=float, default=75.0,
+                           help='Threshold de warning para disco em %% (default: 75)')
+    disk_group.add_argument('--disk-overload', type=float, default=85.0,
+                           help='Threshold de sobrecarga para disco em %% (default: 85)')
+    disk_group.add_argument('--disk-critical', type=float, default=95.0,
+                           help='Threshold crítico para disco em %% (default: 95)')
+    
+    # Carregar/Salvar thresholds
+    config_group = parser.add_argument_group('Configuração de Thresholds')
+    config_group.add_argument('--thresholds-file', type=str, default=None,
+                             help='Carregar thresholds de arquivo JSON')
+    config_group.add_argument('--save-thresholds', type=str, default=None,
+                             help='Salvar thresholds em arquivo JSON')
+    config_group.add_argument('--save-thresholds-only', action='store_true',
+                             help='Apenas salvar thresholds e sair (não coletar dados)')
+    
+    return parser.parse_args()
+
+
 # ============================================================================
 # EXEMPLO DE USO
 # ============================================================================
 
 if __name__ == "__main__":
-    # Configurações
-    PROMETHEUS_URL = 'http://localhost:9090'
-    DURATION_MINUTES = 60  # Coleta últimos 60 minutos
-    STEP = '30s'  # Medição a cada 30 segundos
-    POD_FILTER = 'memory-stress-.*'  # Filtro opcional
-    NAMESPACE = None  # Namespace opcional
+    args = parse_arguments()
     
-    # Cria gerador de dataset
-    generator = MLDatasetGenerator(PROMETHEUS_URL)
-    
-    # Gera dataset
-    df = generator.generate_dataset(
-        duration_minutes=DURATION_MINUTES,
-        step=STEP,
-        pod_filter=POD_FILTER,
-        namespace=NAMESPACE
-    )
-    
-    # Imprime resumo
-    generator.print_summary()
-    
-    # Salva dataset
-    generator.save_dataset(
-        output_path='kubernetes_ml_dataset',
-        formats=['csv', 'parquet', 'json']
-    )
-    
-    # Exemplo: visualizar primeiras linhas
-    print("\n📋 Primeiras linhas do dataset:")
-    print(df.head(10))
-    
-    # Exemplo: informações sobre colunas
-    print("\n📊 Informações das colunas:")
-    print(df.info())
-    
-    print("\n✨ Dataset pronto para Machine Learning!")
-    print("\nPróximos passos:")
-    print("1. Carregar o dataset: df = pd.read_parquet('kubernetes_ml_dataset.parquet')")
-    print("2. Separar features e target: X = df.drop(['target_columns'], axis=1)")
-    print("3. Aplicar algoritmos de ML: RandomForest, XGBoost, etc.")
+    try:
+        # Carrega ou cria configuração de thresholds
+        if args.thresholds_file:
+            logger.info(f"📂 Carregando thresholds de: {args.thresholds_file}")
+            thresholds = ThresholdConfig.load_from_file(args.thresholds_file)
+        else:
+            thresholds = ThresholdConfig(
+                memory_warning=args.memory_warning,
+                memory_overload=args.memory_overload,
+                memory_critical=args.memory_critical,
+                cpu_warning=args.cpu_warning,
+                cpu_overload=args.cpu_overload,
+                cpu_critical=args.cpu_critical,
+                disk_warning=args.disk_warning,
+                disk_overload=args.disk_overload,
+                disk_critical=args.disk_critical
+            )
+        
+        # Se for apenas para salvar thresholds
+        if args.save_thresholds_only:
+            output_file = args.save_thresholds or args.output or 'thresholds_config.json'
+            thresholds.save_to_file(output_file)
+            logger.info("✅ Thresholds salvos com sucesso!")
+            exit(0)
+        
+        # Cria gerador de dataset
+        generator = MLDatasetGenerator(args.prometheus_url, thresholds)
+        
+        # Gera dataset
+        df = generator.generate_dataset(
+            duration_minutes=args.duration,
+            step=args.step,
+            pod_filter=args.pod_filter,
+            namespace=args.namespace
+        )
+        
+        if df.empty:
+            logger.error("❌ Dataset vazio! Verifique se há pods rodando e métricas disponíveis.")
+            exit(1)
+        
+        # Imprime resumo
+        generator.print_summary()
+        
+        # Salva dataset
+        generator.save_dataset(
+            output_path=args.output,
+            formats=args.formats
+        )
+        
+        # Salva thresholds se solicitado
+        if args.save_thresholds:
+            thresholds.save_to_file(args.save_thresholds)
+        
+        logger.info("\n✨ Coleta de dados concluída com sucesso!")
+        logger.info("\nPróximos passos:")
+        logger.info("  1. Treinar modelo: python sistema_treinamento_ml.py")
+        logger.info(f"  2. Verificar thresholds: cat {args.output}_thresholds.json")
+        logger.info("  3. Ajustar thresholds se necessário e re-executar")
+        
+    except Exception as e:
+        logger.error(f"\n❌ Erro durante execução: {e}")
+        import traceback
+        traceback.print_exc()
+        exit(1)

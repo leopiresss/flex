@@ -1,0 +1,107 @@
+{
+  "dashboard": {
+    "title": "TCC - Visão Geral de Recursos",
+    "tags": ["tcc", "degradacao", "recursos"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "CPU Usage (%)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "(rate(container_cpu_usage_seconds_total{namespace=\"tcc-degradacao\",container!=\"\"}[5m]) / (container_spec_cpu_quota{namespace=\"tcc-degradacao\"} / 100000)) * 100",
+            "legendFormat": "{{pod}} - {{container}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "yaxes": [
+          {"format": "percent", "max": 100, "min": 0}
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Memory Usage (%)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "(container_memory_working_set_bytes{namespace=\"tcc-degradacao\",container!=\"\"} / container_spec_memory_limit_bytes{namespace=\"tcc-degradacao\"}) * 100",
+            "legendFormat": "{{pod}} - {{container}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "yaxes": [
+          {"format": "percent", "max": 100, "min": 0}
+        ]
+      },
+      {
+        "id": 3,
+        "title": "CPU Throttling (%)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "(rate(container_cpu_cfs_throttled_periods_total{namespace=\"tcc-degradacao\"}[5m]) / rate(container_cpu_cfs_periods_total{namespace=\"tcc-degradacao\"}[5m])) * 100",
+            "legendFormat": "{{pod}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [25], "type": "gt"},
+              "query": {"params": ["A", "5m", "now"]}
+            }
+          ]
+        }
+      },
+      {
+        "id": 4,
+        "title": "Memory Working Set (MB)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "container_memory_working_set_bytes{namespace=\"tcc-degradacao\",container!=\"\"} / 1024 / 1024",
+            "legendFormat": "{{pod}}"
+          },
+          {
+            "expr": "container_spec_memory_limit_bytes{namespace=\"tcc-degradacao\"} / 1024 / 1024",
+            "legendFormat": "Limit - {{pod}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 5,
+        "title": "Network I/O (MB/s)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(container_network_receive_bytes_total{namespace=\"tcc-degradacao\"}[5m]) / 1024 / 1024",
+            "legendFormat": "RX - {{pod}}"
+          },
+          {
+            "expr": "rate(container_network_transmit_bytes_total{namespace=\"tcc-degradacao\"}[5m]) / 1024 / 1024",
+            "legendFormat": "TX - {{pod}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 6,
+        "title": "Disk I/O (MB/s)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(container_fs_reads_bytes_total{namespace=\"tcc-degradacao\"}[5m]) / 1024 / 1024",
+            "legendFormat": "Read - {{pod}}"
+          },
+          {
+            "expr": "rate(container_fs_writes_bytes_total{namespace=\"tcc-degradacao\"}[5m]) / 1024 / 1024",
+            "legendFormat": "Write - {{pod}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      }
+    ]
+  }
+}

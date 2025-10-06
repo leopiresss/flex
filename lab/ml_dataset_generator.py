@@ -1,1225 +1,1201 @@
-#!/usr/bin/env python3
 """
-Gerador de Dataset para Machine Learning - Degradação de Pods Kubernetes
-Coleta métricas do Prometheus e gera dataset estruturado para análise de ML
+Sistema de Coleta de Métricas para ML - Detecção de Sobrecarga em Kubernetes
+Autor: Sistema de Monitoramento
+Descrição: Coleta métricas do cAdvisor e gera dataset estruturado para Machine Learning
+          com thresholds configuráveis para definição de sobrecarga
+Versão: 2.0 - Com correção de queries Prometheus e thresholds parametrizados
 """
 
-import requests
+
 import pandas as pd
+import requests
 import numpy as np
 from datetime import datetime, timedelta
-import time
 import json
-import argparse
-import sys
-from typing import Dict, List, Optional, Tuple, Union
-import warnings
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
-
+import argparse
+from typing import Dict, List, Optional, Tuple
+import warnings
 warnings.filterwarnings('ignore')
 
 # Configuração de logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
-class PrometheusMLDatasetGenerator:
-    """Gerador de dataset ML com métricas de degradação de pod"""
+
+class ThresholdConfig:
+    """Classe para gerenciar configurações de thresholds"""
     
-    def __init__(self, prometheus_url: str = "http://localhost:9090",
-                 container_name: str = "prime-server",
-                 namespace: str = None,
-                 timeout: int = 30):
-        self.prometheus_url = prometheus_url.rstrip('/')
-        self.container_name = container_name
-        self.namespace = namespace
-        self.timeout = timeout
+    def __init__(self, 
+                 memory_warning: float = 30.0,
+                 memory_overload: float = 40.0, 
+                 memory_critical: float = 50.0,
+                 cpu_warning: float = 70.0,
+                 cpu_overload: float = 80.0,
+                 cpu_critical: float = 90.0,
+                 disk_warning: float = 75.0,
+                 disk_overload: float = 85.0,
+                 disk_critical: float = 95.0):
+        """
+        Inicializa configuração de thresholds
         
-        # Validação da conexão
-        if not self._validate_connection():
-            raise ConnectionError("Não foi possível conectar ao Prometheus")
+        Args:
+            memory_warning: Threshold de warning para memória (%)
+            memory_overload: Threshold de sobrecarga para memória (%)
+            memory_critical: Threshold crítico para memória (%)
+            cpu_warning: Threshold de warning para CPU (%)
+            cpu_overload: Threshold de sobrecarga para CPU (%)
+            cpu_critical: Threshold crítico para CPU (%)
+            disk_warning: Threshold de warning para disco (%)
+            disk_overload: Threshold de sobrecarga para disco (%)
+            disk_critical: Threshold crítico para disco (%)
+        """
+        # Validação
+        self._validate_threshold(memory_warning, memory_overload, memory_critical, "Memory")
+        self._validate_threshold(cpu_warning, cpu_overload, cpu_critical, "CPU")
+        self._validate_threshold(disk_warning, disk_overload, disk_critical, "Disk")
         
-        # Definição das queries das métricas principais
-        self.metric_queries = self._define_metric_queries()
+        # Memória
+        self.memory_warning = memory_warning
+        self.memory_overload = memory_overload
+        self.memory_critical = memory_critical
         
-        logger.info(f"Gerador inicializado para container '{container_name}' no Prometheus '{prometheus_url}'")
+        # CPU
+        self.cpu_warning = cpu_warning
+        self.cpu_overload = cpu_overload
+        self.cpu_critical = cpu_critical
         
-    def _validate_connection(self) -> bool:
-        """Valida conexão com Prometheus"""
-        try:
-            response = requests.get(f"{self.prometheus_url}/api/v1/status/config", timeout=10)
-            return response.status_code == 200
-        except:
-            return False
+        # Disco
+        self.disk_warning = disk_warning
+        self.disk_overload = disk_overload
+        self.disk_critical = disk_critical
         
-    def _build_selector(self) -> str:
-        """Constrói seletor base para queries"""
-        selector = f'{{container="{self.container_name}"'
-        if self.namespace:
-            selector += f', namespace="{self.namespace}"'
-        selector += '}'
-        return selector
-        
-    def _define_metric_queries(self) -> Dict[str, str]:
-        """Define as queries para cada métrica"""
-        selector = self._build_selector()
-        
-        queries = {
-            # === MÉTRICAS DE MEMÓRIA ===
-            'memory_working_set_bytes': f'container_memory_working_set_bytes{selector}',
-            'memory_rss_bytes': f'container_memory_rss{selector}',
-            'memory_usage_bytes': f'container_memory_usage_bytes{selector}',
-            'memory_cache_bytes': f'container_memory_cache{selector}',
-            'memory_limit_bytes': f'container_spec_memory_limit_bytes{selector}',
-            'memory_swap_bytes': f'container_memory_swap{selector}',
-            
-            # === MÉTRICAS DE CPU ===
-            'cpu_usage_rate': f'rate(container_cpu_usage_seconds_total{selector}[2m])',
-            'cpu_throttled_rate': f'rate(container_cpu_cfs_throttled_seconds_total{selector}[2m])',
-            'cpu_periods_rate': f'rate(container_cpu_cfs_periods_total{selector}[2m])',
-            'cpu_quota': f'container_spec_cpu_quota{selector}',
-            'cpu_shares': f'container_spec_cpu_shares{selector}',
-            
-            # === MÉTRICAS DE REDE ===
-            'network_rx_bytes_rate': f'rate(container_network_receive_bytes_total{selector}[2m])',
-            'network_tx_bytes_rate': f'rate(container_network_transmit_bytes_total{selector}[2m])',
-            'network_rx_packets_rate': f'rate(container_network_receive_packets_total{selector}[2m])',
-            'network_tx_packets_rate': f'rate(container_network_transmit_packets_total{selector}[2m])',
-            'network_rx_dropped_rate': f'rate(container_network_receive_packets_dropped_total{selector}[2m])',
-            'network_tx_dropped_rate': f'rate(container_network_transmit_packets_dropped_total{selector}[2m])',
-            'network_rx_errors_rate': f'rate(container_network_receive_errors_total{selector}[2m])',
-            'network_tx_errors_rate': f'rate(container_network_transmit_errors_total{selector}[2m])',
-            
-            # === MÉTRICAS DE I/O ===
-            'fs_reads_bytes_rate': f'rate(container_fs_reads_bytes_total{selector}[2m])',
-            'fs_writes_bytes_rate': f'rate(container_fs_writes_bytes_total{selector}[2m])',
-            'fs_reads_total_rate': f'rate(container_fs_reads_total{selector}[2m])',
-            'fs_writes_total_rate': f'rate(container_fs_writes_total{selector}[2m])',
-            'fs_io_time_rate': f'rate(container_fs_io_time_seconds_total{selector}[2m])',
-            'fs_usage_bytes': f'container_fs_usage_bytes{selector}',
-            'fs_limit_bytes': f'container_fs_limit_bytes{selector}',
-            
-            # === MÉTRICAS DE POD ===
-            'pod_restarts': f'kube_pod_container_status_restarts_total{{container="{self.container_name}"' + 
-                           (f', namespace="{self.namespace}"' if self.namespace else '') + '}',
-            'pod_ready': f'kube_pod_status_ready{{pod=~".*{self.container_name}.*"}}',
-            'pod_phase_running': f'kube_pod_status_phase{{pod=~".*{self.container_name}.*", phase="Running"}}',
+        logger.info("📊 Thresholds configurados:")
+        logger.info(f"   Memory: Warning={memory_warning}%, Overload={memory_overload}%, Critical={memory_critical}%")
+        logger.info(f"   CPU: Warning={cpu_warning}%, Overload={cpu_overload}%, Critical={cpu_critical}%")
+        logger.info(f"   Disk: Warning={disk_warning}%, Overload={disk_overload}%, Critical={disk_critical}%")
+    
+    def _validate_threshold(self, warning: float, overload: float, critical: float, name: str):
+        """Valida se os thresholds estão em ordem crescente"""
+        if not (0 <= warning < overload < critical <= 100):
+            raise ValueError(
+                f"Thresholds de {name} inválidos! "
+                f"Devem estar entre 0-100 e em ordem: warning < overload < critical. "
+                f"Valores fornecidos: warning={warning}, overload={overload}, critical={critical}"
+            )
+    
+    def to_dict(self) -> Dict:
+        """Retorna thresholds como dicionário"""
+        return {
+            'memory': {
+                'warning': self.memory_warning,
+                'overload': self.memory_overload,
+                'critical': self.memory_critical
+            },
+            'cpu': {
+                'warning': self.cpu_warning,
+                'overload': self.cpu_overload,
+                'critical': self.cpu_critical
+            },
+            'disk': {
+                'warning': self.disk_warning,
+                'overload': self.disk_overload,
+                'critical': self.disk_critical
+            }
         }
-        
-        # Remove queries com valores None ou vazios
-        return {k: v for k, v in queries.items() if v}
     
-    def _query_single_metric(self, metric_name: str, query: str, 
-                           start_time: int, end_time: int, step: str) -> Dict[str, List]:
-        """Executa query única e retorna dados formatados"""
+    def save_to_file(self, filepath: str = 'thresholds_config.json'):
+        """Salva configuração em arquivo JSON"""
+        with open(filepath, 'w') as f:
+            json.dump(self.to_dict(), f, indent=2)
+        logger.info(f"💾 Thresholds salvos em: {filepath}")
+    
+    @classmethod
+    def load_from_file(cls, filepath: str = 'thresholds_config.json'):
+        """Carrega configuração de arquivo JSON"""
+        with open(filepath, 'r') as f:
+            config = json.load(f)
+        
+        return cls(
+            memory_warning=config['memory']['warning'],
+            memory_overload=config['memory']['overload'],
+            memory_critical=config['memory']['critical'],
+            cpu_warning=config['cpu']['warning'],
+            cpu_overload=config['cpu']['overload'],
+            cpu_critical=config['cpu']['critical'],
+            disk_warning=config['disk']['warning'],
+            disk_overload=config['disk']['overload'],
+            disk_critical=config['disk']['critical']
+        )
+
+
+class PrometheusConnector:
+    """Classe para conexão e queries no Prometheus"""
+    
+    def __init__(self, prometheus_url: str, timeout: int = 60, 
+                 username: Optional[str] = None, password: Optional[str] = None,
+                 verify_ssl: bool = True):
+        """
+        Inicializa connector do Prometheus
+        
+        Args:
+            prometheus_url: URL do Prometheus
+            timeout: Timeout para requisições em segundos
+            username: Usuário para Basic Auth (opcional)
+            password: Senha para Basic Auth (opcional)
+            verify_ssl: Verificar certificado SSL (default: True)
+        """
+        self.prometheus_url = prometheus_url.rstrip('/')
+        self.api_url = f"{self.prometheus_url}/api/v1"
+        self.timeout = timeout
+        self.verify_ssl = verify_ssl
+        
+        # Configurar autenticação
+        self.auth = None
+        if username and password:
+            self.auth = (username, password)
+            logger.info(f"Prometheus Connector iniciado com Basic Auth: {prometheus_url} (usuário: {username})")
+        else:
+            logger.info(f"Prometheus Connector iniciado sem autenticação: {self.prometheus_url}")
+        
+        if not verify_ssl:
+            logger.warning("⚠️  Verificação SSL desabilitada!")
+            import urllib3
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    
+    def test_connection(self) -> bool:
+        """Testa conexão com Prometheus"""
         try:
             response = requests.get(
-                f"{self.prometheus_url}/api/v1/query_range",
-                params={
-                    "query": query,
-                    "start": start_time,
-                    "end": end_time,
-                    "step": step
-                },
-                timeout=self.timeout
+                f"{self.api_url}/query", 
+                params={'query': 'up'}, 
+                timeout=10,
+                auth=self.auth,
+                verify=self.verify_ssl
             )
-            
-            if response.status_code != 200:
-                logger.warning(f"HTTP {response.status_code} para métrica '{metric_name}'")
-                return {"timestamps": [], "values": []}
-            
-            data = response.json()
-            
-            if data.get('status') != 'success':
-                logger.warning(f"Query falhou para '{metric_name}': {data.get('error', 'Unknown error')}")
-                return {"timestamps": [], "values": []}
-            
-            results = data.get('data', {}).get('result', [])
-            if not results:
-                logger.debug(f"Nenhum dado encontrado para '{metric_name}'")
-                return {"timestamps": [], "values": []}
-            
-            # Processa primeiro resultado (assumindo um pod/container)
-            values_data = results[0].get('values', [])
-            if not values_data:
-                return {"timestamps": [], "values": []}
-            
-            timestamps = [float(item[0]) for item in values_data]
-            values = []
-            
-            for item in values_data:
-                try:
-                    # Converte valor para float, tratando casos especiais
-                    val = item[1]
-                    if val in ['NaN', '+Inf', '-Inf']:
-                        values.append(np.nan)
-                    else:
-                        values.append(float(val))
-                except (ValueError, TypeError):
-                    values.append(np.nan)
-            
-            return {"timestamps": timestamps, "values": values}
-            
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Erro de rede para métrica '{metric_name}': {e}")
-            return {"timestamps": [], "values": []}
+            response.raise_for_status()
+            logger.info("✅ Conexão com Prometheus estabelecida")
+            return True
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 401:
+                logger.error("❌ Erro de autenticação (401): Credenciais inválidas")
+            elif e.response.status_code == 403:
+                logger.error("❌ Erro de autorização (403): Sem permissão")
+            else:
+                logger.error(f"❌ Erro HTTP ao conectar com Prometheus: {e}")
+            return False
+        except requests.exceptions.SSLError as e:
+            logger.error(f"❌ Erro SSL: {e}")
+            logger.error("   Dica: Use --no-verify-ssl para ignorar certificado inválido")
+            return False
         except Exception as e:
-            logger.error(f"Erro inesperado para métrica '{metric_name}': {e}")
-            return {"timestamps": [], "values": []}
+            logger.error(f"❌ Erro ao conectar com Prometheus: {e}")
+            return False
     
-    def collect_metrics_data(self, duration_hours: int = 24, 
-                           step_seconds: int = 30, 
-                           max_workers: int = 5) -> pd.DataFrame:
-        """Coleta todas as métricas usando threads paralelas"""
-        
-        logger.info(f"Iniciando coleta de métricas:")
-        logger.info(f"  Duração: {duration_hours} horas")
-        logger.info(f"  Resolução: {step_seconds} segundos")
-        logger.info(f"  Container: {self.container_name}")
-        logger.info(f"  Métricas: {len(self.metric_queries)}")
-        
-        # Calcula período
-        end_time = int(time.time())
-        start_time = end_time - (duration_hours * 3600)
-        step = f"{step_seconds}s"
-        
-        # Coleta dados usando threads
-        all_metrics_data = {}
-        
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Submete todas as queries
-            future_to_metric = {
-                executor.submit(
-                    self._query_single_metric, 
-                    metric_name, 
-                    query, 
-                    start_time, 
-                    end_time, 
-                    step
-                ): metric_name
-                for metric_name, query in self.metric_queries.items()
-            }
+    def query_range(self, query: str, start: int, end: int, step: str = '30s') -> Optional[Dict]:
+        """Executa query com range temporal"""
+        try:
+            response = requests.get(
+                f"{self.api_url}/query_range",
+                params={'query': query, 'start': start, 'end': end, 'step': step},
+                timeout=self.timeout,
+                auth=self.auth,
+                verify=self.verify_ssl
+            )
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 401:
+                logger.error(f"❌ Erro de autenticação na query: {query[:50]}...")
+            else:
+                logger.error(f"Erro HTTP ao executar query: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Erro ao executar query: {e}")
+            return None
+    
+    def query_instant(self, query: str) -> Optional[Dict]:
+        """Executa query instantânea"""
+        try:
+            response = requests.get(
+                f"{self.api_url}/query",
+                params={'query': query},
+                timeout=self.timeout,
+                auth=self.auth,
+                verify=self.verify_ssl
+            )
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 401:
+                logger.error(f"❌ Erro de autenticação na query instantânea")
+            else:
+                logger.error(f"Erro HTTP ao executar query instantânea: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Erro ao executar query instantânea: {e}")
+            return None
+
+
+class MetricsExtractor:
+    """Classe para extração de métricas do cAdvisor"""
+    
+    def __init__(self, connector: PrometheusConnector):
+        self.connector = connector
+        self.raw_metrics = []
+
+
+
+
+    def get_metrics_config(self) -> Dict[str, str]:
+        """Retorna configuração de métricas a serem coletadas"""
+        return {
+            # Métricas de CPU
+            'cpu_usage_total': 'rate(container_cpu_usage_seconds_total[5m])',
+            'cpu_user': 'rate(container_cpu_user_seconds_total[5m])',
+            'cpu_system': 'rate(container_cpu_system_seconds_total[5m])',
+            'cpu_throttled_periods': 'rate(container_cpu_cfs_throttled_periods_total[5m])',
+            'cpu_throttled_time': 'rate(container_cpu_cfs_throttled_seconds_total[5m])',
             
-            # Coleta resultados
-            completed = 0
-            total = len(future_to_metric)
+            # Métricas de Memória
+            'memory_usage_bytes': 'container_memory_usage_bytes',
+            'memory_working_set_bytes': 'container_memory_working_set_bytes',
+            'memory_rss': 'container_memory_rss',
+            'memory_cache': 'container_memory_cache',
+            'memory_swap': 'container_memory_swap',
+            'memory_max_usage': 'container_memory_max_usage_bytes',
+            'memory_failures': 'rate(container_memory_failures_total[5m])',
             
-            for future in as_completed(future_to_metric):
-                metric_name = future_to_metric[future]
-                completed += 1
+            # Limites e Especificações
+            #  'memory_limit': 'container_spec_memory_limit_bytes', 
+              'memory_limit': 'kube_pod_container_resource_limits',
+
+            'cpu_quota': 'container_spec_cpu_quota',
+            'cpu_period': 'container_spec_cpu_period',
+            
+            # Métricas de Rede
+            'network_rx_bytes': 'rate(container_network_receive_bytes_total[5m])',
+            'network_tx_bytes': 'rate(container_network_transmit_bytes_total[5m])',
+            'network_rx_errors': 'rate(container_network_receive_errors_total[5m])',
+            'network_tx_errors': 'rate(container_network_transmit_errors_total[5m])',
+            'network_rx_packets_dropped': 'rate(container_network_receive_packets_dropped_total[5m])',
+            'network_tx_packets_dropped': 'rate(container_network_transmit_packets_dropped_total[5m])',
+            
+            # Métricas de Disco
+            'fs_usage_bytes': 'container_fs_usage_bytes',
+            'fs_limit_bytes': 'container_fs_limit_bytes',
+            'fs_reads': 'rate(container_fs_reads_bytes_total[5m])',
+            'fs_writes': 'rate(container_fs_writes_bytes_total[5m])',
+            'fs_read_time': 'rate(container_fs_read_seconds_total[5m])',
+            'fs_write_time': 'rate(container_fs_write_seconds_total[5m])',
+            
+            # Processos e Threads
+            'processes': 'container_processes',
+            'threads': 'container_threads',
+            'file_descriptors': 'container_file_descriptors',
+            'sockets': 'container_sockets',
+            
+            # === NOVAS MÉTRICAS DE ESTADO DO POD ===
+            
+            # Estado e Disponibilidade do Pod
+            'pod_ready': 'kube_pod_status_ready',
+            'pod_phase': 'kube_pod_status_phase',
+            'pod_conditions': 'kube_pod_status_condition',
+            'pod_scheduled': 'kube_pod_status_scheduled',
+            
+            # Restarts e Falhas
+            'container_restarts': 'kube_pod_container_status_restarts_total',
+            'container_ready': 'kube_pod_container_status_ready',
+            'container_running': 'kube_pod_container_status_running',
+            'container_waiting': 'kube_pod_container_status_waiting',
+            'container_terminated': 'kube_pod_container_status_terminated',
+            
+            # OOM e Problemas de Memória
+            'oom_kills': 'container_oom_events_total',
+            'oom_kill_rate': 'rate(container_oom_events_total[5m])',
+            
+            # Latência e Performance de Rede
+            'network_tcp_connections': 'container_network_tcp_usage_total',
+            'network_udp_connections': 'container_network_udp_usage_total',
+            
+            # Age e Uptime
+            'pod_start_time': 'kube_pod_start_time',
+            'pod_created': 'kube_pod_created',
+            'container_start_time': 'container_start_time_seconds',
+            
+            # Labels e Metadata que podem indicar degradação
+            'pod_labels': 'kube_pod_labels',
+            'pod_owner': 'kube_pod_owner',
+            
+            # Métricas de Probe (Liveness/Readiness)
+            'probe_success': 'prober_probe_total',
+            
+            # QoS Class (pode afetar scheduling e eviction)
+            'pod_qos_class': 'kube_pod_status_qos_class',
+            
+            # Resource Requests vs Limits (útil para detectar overcommit)
+            'memory_requests': 'kube_pod_container_resource_requests',
+            'memory_limits': 'kube_pod_container_resource_limits',
+            'cpu_requests': 'kube_pod_container_resource_requests',
+            'cpu_limits': 'kube_pod_container_resource_limits',
+            
+            # Eviction e Preemption
+            'pod_deletion_timestamp': 'kube_pod_deletion_timestamp',
+            
+            # Métricas de I/O que podem indicar degradação
+            'io_service_bytes_read': 'rate(container_fs_io_current[5m])',
+            'io_service_bytes_write': 'rate(container_fs_io_current[5m])',
+            
+            # Context Switches (alto número pode indicar problemas)
+            'cpu_context_switches': 'rate(container_cpu_cfs_periods_total[5m])',
+            
+            # Tasks State (podem indicar problemas de scheduling)
+            'tasks_sleeping': 'container_tasks_state',
+            'tasks_running': 'container_tasks_state',
+            'tasks_stopped': 'container_tasks_state',
+            'tasks_uninterruptible': 'container_tasks_state',
+            
+            # Latência de Startup (container pode estar demorando a iniciar)
+            'container_last_seen': 'container_last_seen',
+            
+            # Métricas de Node que afetam o Pod
+            'node_memory_pressure': 'kube_node_status_condition',
+            'node_disk_pressure': 'kube_node_status_condition',
+            'node_pid_pressure': 'kube_node_status_condition',
+            'node_ready': 'kube_node_status_condition',
+        }
+    
+    def extract_metrics(self, start_time: datetime, end_time: datetime, 
+                       step: str = '30s', pod_filter: Optional[str] = None,
+                       namespace: Optional[str] = None) -> pd.DataFrame:
+        """
+        Extrai métricas do cAdvisor para o período especificado
+        
+        Args:
+            start_time: Data/hora inicial
+            end_time: Data/hora final
+            step: Intervalo entre medições
+            pod_filter: Filtro regex para pods
+            namespace: Namespace específico
+        
+        Returns:
+            DataFrame com métricas brutas
+        """
+        logger.info(f"Iniciando extração de métricas: {start_time} até {end_time}")
+        
+        start_ts = int(start_time.timestamp())
+        end_ts = int(end_time.timestamp())
+        
+        metrics_config = self.get_metrics_config()
+        all_data = []
+        
+        for metric_name, metric_query in metrics_config.items():
+            # Adiciona filtros
+            filters = ['container!="POD"', 'container!=""']
+            if metric_name == 'memory_limit':
+                filters.append(f'resource="memory"')
+            if pod_filter:
+                filters.append(f'pod=~"{pod_filter}"')
+            if namespace:
+                filters.append(f'namespace="{namespace}"')
+            
+            # Monta query corretamente baseado no tipo de métrica
+            filters_str = ','.join(filters)
+            
+            # Se a métrica usa rate(), os filtros vão DENTRO do rate()
+            if metric_query.startswith('rate('):
+                # Extrai o nome da métrica e o intervalo
+                # Ex: rate(container_cpu_usage_seconds_total[5m])
+                metric_base = metric_query.replace('rate(', '').replace(')', '')
+                metric_name_part = metric_base.split('[')[0]
+                interval_part = '[' + metric_base.split('[')[1]
                 
-                try:
-                    result = future.result()
-                    all_metrics_data[metric_name] = result
-                    
-                    if result["timestamps"]:
-                        logger.info(f"[{completed}/{total}] ✅ {metric_name}: {len(result['timestamps'])} pontos")
-                    else:
-                        logger.warning(f"[{completed}/{total}] ⚠️  {metric_name}: sem dados")
-                        
-                except Exception as e:
-                    logger.error(f"[{completed}/{total}] ❌ {metric_name}: {e}")
-                    all_metrics_data[metric_name] = {"timestamps": [], "values": []}
-        
-        # Converte para DataFrame
-        df = self._build_dataframe(all_metrics_data)
-        
-        if df.empty:
-            logger.error("❌ Nenhum dado coletado!")
-            return pd.DataFrame()
-        
-        logger.info(f"✅ Dataset base criado: {len(df)} registros, {len(df.columns)} colunas")
-        return df
-    
-    def _build_dataframe(self, metrics_data: Dict[str, Dict]) -> pd.DataFrame:
-        """Constrói DataFrame a partir dos dados coletados"""
-        
-        # Encontra conjunto comum de timestamps
-        all_timestamps = set()
-        valid_metrics = {}
-        
-        for metric_name, data in metrics_data.items():
-            if data["timestamps"]:
-                all_timestamps.update(data["timestamps"])
-                valid_metrics[metric_name] = data
-        
-        if not all_timestamps:
-            return pd.DataFrame()
-        
-        # Ordena timestamps
-        sorted_timestamps = sorted(list(all_timestamps))
-        
-        # Constrói DataFrame
-        df_data = {"timestamp": sorted_timestamps}
-        
-        for metric_name, data in valid_metrics.items():
-            # Cria série temporal completa, preenchendo valores faltantes com NaN
-            metric_series = pd.Series(
-                data["values"], 
-                index=data["timestamps"]
-            ).reindex(sorted_timestamps)
+                # Reconstroi com filtros corretos
+                query = f'rate({metric_name_part}{{{filters_str}}}{interval_part})'
+            else:
+                # Métricas sem rate() mantém sintaxe original
+                query = f'{metric_query}{{{filters_str}}}'
+            print(query)
+            logger.info(f"Coletando: {metric_name}")
+            logger.debug(f"Query: {query}")
+            result = self.connector.query_range(query, start_ts, end_ts, step)
             
-            df_data[metric_name] = metric_series.values
+            if result and result['status'] == 'success':
+                for item in result['data']['result']:
+                    for timestamp, value in item['values']:
+                        record = {
+                            'timestamp': datetime.fromtimestamp(timestamp),
+                            'metric_name': metric_name,
+                            'value': float(value) if value != 'NaN' else np.nan,
+                            'pod': item['metric'].get('pod', ''),
+                            'container': item['metric'].get('container', ''),
+                            'namespace': item['metric'].get('namespace', ''),
+                            'node': item['metric'].get('node', ''),
+                        }
+                        all_data.append(record)
         
-        df = pd.DataFrame(df_data)
-        
-        # Adiciona coluna datetime
-        df['datetime'] = pd.to_datetime(df['timestamp'], unit='s')
-        
+        df = pd.DataFrame(all_data)
+        logger.info(f"✅ Extração concluída: {len(df)} registros coletados")
         return df
+
+
+class FeatureEngineer:
+    """Classe para engenharia de features para ML"""
     
-    def calculate_derived_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Calcula features derivadas para ML"""
-        if df.empty:
-            return df
+    def __init__(self, thresholds: ThresholdConfig):
+        self.thresholds = thresholds
+        self.feature_columns = []
+    
+    def create_ml_features(self, df_raw: pd.DataFrame) -> pd.DataFrame:
+        """
+        Transforma métricas brutas em features para ML
         
-        logger.info("🧮 Calculando features derivadas...")
-        df = df.copy()
+        Args:
+            df_raw: DataFrame com métricas brutas
         
-        # === CONVERSÕES DE UNIDADE ===
-        # Converte bytes para MB
-        byte_columns = [col for col in df.columns if 'bytes' in col.lower() and 'rate' not in col]
-        for col in byte_columns:
-            if col in df.columns:
-                df[f'{col}_mb'] = df[col] / (1024 * 1024)
+        Returns:
+            DataFrame com features estruturadas
+        """
+        logger.info("Iniciando engenharia de features...")
         
-        # === PERCENTUAIS DE USO ===
-        if 'memory_working_set_bytes' in df.columns and 'memory_limit_bytes' in df.columns:
-            df['memory_usage_percent'] = np.where(
-                df['memory_limit_bytes'] > 0,
-                (df['memory_working_set_bytes'] / df['memory_limit_bytes']) * 100,
-                0
-            )
+        # Pivot para ter uma linha por timestamp/pod/container
+        df_pivot = df_raw.pivot_table(
+            index=['timestamp', 'pod', 'container', 'namespace', 'node'],
+            columns='metric_name',
+            values='value',
+            aggfunc='first'
+        ).reset_index()
         
-        if 'memory_rss_bytes' in df.columns and 'memory_limit_bytes' in df.columns:
-            df['memory_rss_percent'] = np.where(
-                df['memory_limit_bytes'] > 0,
-                (df['memory_rss_bytes'] / df['memory_limit_bytes']) * 100,
-                0
-            )
+        # Remove colunas completamente vazias
+        df_pivot = df_pivot.dropna(axis=1, how='all')
         
+        logger.info(f"Features base criadas: {df_pivot.shape}")
+        
+        # Calcula features derivadas
+        df_features = self._calculate_derived_features(df_pivot)
+        
+        # Adiciona features temporais
+        df_features = self._add_temporal_features(df_features)
+        
+        # Adiciona features estatísticas (rolling)
+        df_features = self._add_statistical_features(df_features)
+        
+        # Cria labels para ML (target) - USA THRESHOLDS CONFIGURÁVEIS
+        df_features = self._create_target_labels(df_features)
+        
+        logger.info(f"✅ Features finais: {df_features.shape}")
+        logger.info(f"Colunas: {list(df_features.columns)}")
+        
+        return df_features
+    
+    def _calculate_derived_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Calcula features derivadas das métricas base"""
+        logger.info("Calculando features derivadas...")
+        
+        # Percentual de uso de memória
+        if 'memory_working_set_bytes' in df.columns and 'memory_limit' in df.columns:
+            df['memory_usage_percent'] = (df['memory_working_set_bytes'] / df['memory_limit']) * 100
+            df['memory_usage_percent'] = df['memory_usage_percent'].clip(0, 100)
+        
+        # Percentual de uso de CPU (baseado em quota)
+        if 'cpu_usage_total' in df.columns and 'cpu_quota' in df.columns and 'cpu_period' in df.columns:
+            cpu_limit_cores = (df['cpu_quota'] / df['cpu_period'])
+            df['cpu_usage_percent'] = (df['cpu_usage_total'] / cpu_limit_cores) * 100
+            df['cpu_usage_percent'] = df['cpu_usage_percent'].clip(0, 200)
+        
+        # Percentual de uso de disco
         if 'fs_usage_bytes' in df.columns and 'fs_limit_bytes' in df.columns:
-            df['disk_usage_percent'] = np.where(
-                df['fs_limit_bytes'] > 0,
-                (df['fs_usage_bytes'] / df['fs_limit_bytes']) * 100,
-                0
-            )
+            df['disk_usage_percent'] = (df['fs_usage_bytes'] / df['fs_limit_bytes']) * 100
+            df['disk_usage_percent'] = df['disk_usage_percent'].clip(0, 100)
         
-        # === CPU FEATURES ===
-        # CPU como percentual (rate já está normalizado)
-        if 'cpu_usage_rate' in df.columns:
-            df['cpu_usage_percent'] = df['cpu_usage_rate'] * 100
+        # Taxa de throttling de CPU
+        if 'cpu_throttled_periods' in df.columns and 'cpu_throttled_time' in df.columns:
+            df['cpu_throttling_rate'] = df['cpu_throttled_time'] / (df['cpu_throttled_periods'] + 0.001)
         
-        # CPU throttling percentage
-        if 'cpu_throttled_rate' in df.columns and 'cpu_periods_rate' in df.columns:
-            df['cpu_throttling_percent'] = np.where(
-                df['cpu_periods_rate'] > 0,
-                (df['cpu_throttled_rate'] / df['cpu_periods_rate']) * 100,
-                0
-            )
+        # Uso de memória vs cache
+        if 'memory_rss' in df.columns and 'memory_cache' in df.columns:
+            df['memory_rss_percent'] = df['memory_rss'] / (df['memory_usage_bytes'] + 1)
+            df['memory_cache_percent'] = df['memory_cache'] / (df['memory_usage_bytes'] + 1)
         
-        # === NETWORK FEATURES ===
-        if 'network_rx_bytes_rate' in df.columns and 'network_tx_bytes_rate' in df.columns:
-            df['network_total_bytes_rate'] = df['network_rx_bytes_rate'] + df['network_tx_bytes_rate']
-            df['network_total_mbps'] = (df['network_total_bytes_rate'] * 8) / (1024 * 1024)  # Mbps
+        # Taxa de rede total
+        if 'network_rx_bytes' in df.columns and 'network_tx_bytes' in df.columns:
+            df['network_total_bytes'] = df['network_rx_bytes'] + df['network_tx_bytes']
         
-        # Network drop rate
-        if all(col in df.columns for col in ['network_rx_dropped_rate', 'network_tx_dropped_rate', 
-                                           'network_rx_packets_rate', 'network_tx_packets_rate']):
-            total_drops = df['network_rx_dropped_rate'] + df['network_tx_dropped_rate']
-            total_packets = df['network_rx_packets_rate'] + df['network_tx_packets_rate']
+        # Taxa de IO de disco
+        if 'fs_reads' in df.columns and 'fs_writes' in df.columns:
+            df['disk_io_total'] = df['fs_reads'] + df['fs_writes']
+        
+        # Densidade de processos/threads
+        if 'processes' in df.columns and 'threads' in df.columns:
+            df['threads_per_process'] = df['threads'] / (df['processes'] + 1)
+        
+        # === NOVAS FEATURES PARA DETECÇÃO DE DEGRADAÇÃO ===
+        
+        # Taxa de erros de rede (indicador de problemas)
+        if 'network_rx_errors' in df.columns and 'network_tx_errors' in df.columns:
+            df['network_error_rate'] = df['network_rx_errors'] + df['network_tx_errors']
             
-            df['network_drop_percent'] = np.where(
-                total_packets > 0,
-                (total_drops / total_packets) * 100,
-                0
-            )
+            # Proporção de erros vs tráfego total
+            if 'network_total_bytes' in df.columns:
+                df['network_error_ratio'] = df['network_error_rate'] / (df['network_total_bytes'] + 1)
         
-        # Network error rate
-        if all(col in df.columns for col in ['network_rx_errors_rate', 'network_tx_errors_rate']):
-            df['network_total_errors_rate'] = df['network_rx_errors_rate'] + df['network_tx_errors_rate']
+        # Taxa de pacotes dropados (sinal de saturação)
+        if 'network_rx_packets_dropped' in df.columns and 'network_tx_packets_dropped' in df.columns:
+            df['network_packets_dropped_total'] = df['network_rx_packets_dropped'] + df['network_tx_packets_dropped']
         
-        # === I/O FEATURES ===
-        if 'fs_reads_bytes_rate' in df.columns and 'fs_writes_bytes_rate' in df.columns:
-            df['fs_total_io_bytes_rate'] = df['fs_reads_bytes_rate'] + df['fs_writes_bytes_rate']
-            df['fs_total_io_mbps'] = df['fs_total_io_bytes_rate'] / (1024 * 1024)
+        # Latência de I/O (tempo por operação)
+        if 'fs_read_time' in df.columns and 'fs_reads' in df.columns:
+            df['fs_read_latency'] = df['fs_read_time'] / (df['fs_reads'] + 0.001)
         
-        if 'fs_reads_total_rate' in df.columns and 'fs_writes_total_rate' in df.columns:
-            df['fs_total_iops'] = df['fs_reads_total_rate'] + df['fs_writes_total_rate']
+        if 'fs_write_time' in df.columns and 'fs_writes' in df.columns:
+            df['fs_write_latency'] = df['fs_write_time'] / (df['fs_writes'] + 0.001)
         
-        # === FEATURES TEMPORAIS ===
-        df['hour'] = df['datetime'].dt.hour
-        df['day_of_week'] = df['datetime'].dt.dayofweek
-        df['minute'] = df['datetime'].dt.minute
-        df['is_weekend'] = df['day_of_week'].isin([5, 6]).astype(int)
+        # Uso de file descriptors (pode indicar leak)
+        if 'file_descriptors' in df.columns and 'processes' in df.columns:
+            df['fd_per_process'] = df['file_descriptors'] / (df['processes'] + 1)
+        
+        # Taxa de OOM kills (problema crítico)
+        if 'oom_kill_rate' in df.columns:
+            df['has_oom_kills'] = (df['oom_kill_rate'] > 0).astype(int)
+        
+        # Container restart indicator (sinal de instabilidade)
+        if 'container_restarts' in df.columns:
+            df['has_restarts'] = (df['container_restarts'] > 0).astype(int)
+            # Taxa de restarts (diferença entre períodos)
+            df['restart_rate'] = df.groupby(['pod', 'container'])['container_restarts'].diff().fillna(0)
+        
+        # Pod age (tempo desde início - pode correlacionar com degradação)
+        if 'pod_start_time' in df.columns:
+            current_time = pd.Timestamp.now().timestamp()
+            df['pod_age_seconds'] = current_time - df['pod_start_time']
+            df['pod_age_hours'] = df['pod_age_seconds'] / 3600
+        
+        # Memory pressure indicator
+        if 'memory_working_set_bytes' in df.columns and 'memory_limit' in df.columns:
+            # Distância da memória ao limite
+            df['memory_headroom_bytes'] = df['memory_limit'] - df['memory_working_set_bytes']
+            df['memory_headroom_percent'] = (df['memory_headroom_bytes'] / df['memory_limit']) * 100
+            
+            # Indicador de pressão de memória
+            df['memory_pressure'] = (df['memory_usage_percent'] > 80).astype(int)
+        
+        # CPU saturation indicator
+        if 'cpu_throttled_periods' in df.columns:
+            df['cpu_saturated'] = (df['cpu_throttled_periods'] > 0).astype(int)
+        
+        # I/O wait indicator (tasks uninterruptible = waiting for I/O)
+        if 'tasks_uninterruptible' in df.columns and 'processes' in df.columns:
+            df['io_wait_ratio'] = df['tasks_uninterruptible'] / (df['processes'] + 1)
+        
+        # Resource overcommit ratio
+        if 'memory_requests' in df.columns and 'memory_limits' in df.columns:
+            df['memory_overcommit_ratio'] = df['memory_limits'] / (df['memory_requests'] + 1)
+        
+        if 'cpu_requests' in df.columns and 'cpu_limits' in df.columns:
+            df['cpu_overcommit_ratio'] = df['cpu_limits'] / (df['cpu_requests'] + 1)
+        
+        # Stability score (combinação de múltiplos indicadores)
+        stability_factors = []
+        
+        if 'has_restarts' in df.columns:
+            stability_factors.append(df['has_restarts'])
+        
+        if 'has_oom_kills' in df.columns:
+            stability_factors.append(df['has_oom_kills'])
+        
+        if 'memory_pressure' in df.columns:
+            stability_factors.append(df['memory_pressure'])
+        
+        if 'cpu_saturated' in df.columns:
+            stability_factors.append(df['cpu_saturated'])
+        
+        if stability_factors:
+            # Score de 0 (estável) a N (instável)
+            df['instability_score'] = sum(stability_factors)
+            
+            # Binário: instável se algum fator estiver ativo
+            df['is_unstable'] = (df['instability_score'] > 0).astype(int)
+        
+        # Network health score
+        network_health_factors = []
+        
+        if 'network_error_rate' in df.columns:
+            network_health_factors.append((df['network_error_rate'] > 0).astype(int))
+        
+        if 'network_packets_dropped_total' in df.columns:
+            network_health_factors.append((df['network_packets_dropped_total'] > 0).astype(int))
+        
+        if network_health_factors:
+            df['network_unhealthy'] = sum(network_health_factors)
+            df['has_network_issues'] = (df['network_unhealthy'] > 0).astype(int)
+        
+        return df
+    
+    def _add_temporal_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Adiciona features temporais"""
+        logger.info("Adicionando features temporais...")
+        
+        df['hour'] = df['timestamp'].dt.hour
+        df['day_of_week'] = df['timestamp'].dt.dayofweek
+        df['minute'] = df['timestamp'].dt.minute
         
         # Períodos do dia
-        df['time_period'] = pd.cut(
-            df['hour'], 
-            bins=[0, 6, 12, 18, 24], 
-            labels=['night', 'morning', 'afternoon', 'evening'],
-            include_lowest=True
-        ).astype(str)
+        df['period'] = pd.cut(df['hour'], 
+                             bins=[0, 6, 12, 18, 24], 
+                             labels=['madrugada', 'manha', 'tarde', 'noite'],
+                             include_lowest=True)
         
-        # === ROLLING STATISTICS ===
-        self._calculate_rolling_features(df)
+        # Fim de semana
+        df['is_weekend'] = df['day_of_week'].isin([5, 6]).astype(int)
         
-        # === LAG FEATURES ===
-        self._calculate_lag_features(df)
-        
-        # === ANOMALY SCORES ===
-        self._calculate_anomaly_scores(df)
-        
-        logger.info(f"✅ Features derivadas calculadas. Total: {len(df.columns)} colunas")
         return df
     
-    def _calculate_rolling_features(self, df: pd.DataFrame) -> None:
-        """Calcula features de janela móvel"""
-        window_sizes = [5, 10, 30, 60]
-        key_metrics = ['memory_usage_percent', 'cpu_usage_percent', 'network_total_bytes_rate', 'fs_total_io_bytes_rate']
+    def _add_statistical_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Adiciona features estatísticas (rolling windows)"""
+        logger.info("Adicionando features estatísticas...")
         
-        for metric in key_metrics:
-            if metric in df.columns:
-                for window in window_sizes:
-                    if len(df) >= window:
-                        # Média móvel
-                        df[f'{metric}_ma_{window}'] = df[metric].rolling(window=window, min_periods=1).mean()
-                        
-                        # Desvio padrão móvel
-                        df[f'{metric}_std_{window}'] = df[metric].rolling(window=window, min_periods=1).std()
-                        
-                        # Máximo e mínimo móvel
-                        df[f'{metric}_max_{window}'] = df[metric].rolling(window=window, min_periods=1).max()
-                        df[f'{metric}_min_{window}'] = df[metric].rolling(window=window, min_periods=1).min()
-    
-    def _calculate_lag_features(self, df: pd.DataFrame) -> None:
-        """Calcula features de lag temporal"""
-        lag_periods = [1, 5, 10, 30]
-        key_metrics = ['memory_usage_percent', 'cpu_usage_percent', 'network_total_bytes_rate']
+        # Ordena por pod/container e timestamp
+        df = df.sort_values(['pod', 'container', 'timestamp'])
         
-        for metric in key_metrics:
-            if metric in df.columns:
-                for lag in lag_periods:
-                    # Diferença
-                    df[f'{metric}_diff_{lag}'] = df[metric].diff(lag)
-                    
-                    # Taxa de mudança percentual
-                    df[f'{metric}_pct_change_{lag}'] = df[metric].pct_change(lag) * 100
-                    
-                    # Valor anterior (lag)
-                    if lag <= 10:  # Limita para não criar muitas colunas
-                        df[f'{metric}_lag_{lag}'] = df[metric].shift(lag)
-    
-    def _calculate_anomaly_scores(self, df: pd.DataFrame) -> None:
-        """Calcula scores de anomalia"""
-        key_metrics = ['memory_usage_percent', 'cpu_usage_percent', 'network_total_bytes_rate']
+        # Métricas numéricas para calcular estatísticas
+        numeric_metrics = ['memory_usage_percent', 'cpu_usage_percent', 
+                          'disk_usage_percent', 'network_total_bytes']
         
-        for metric in key_metrics:
+        for metric in numeric_metrics:
             if metric in df.columns:
-                # Z-score (padronização)
-                mean_val = df[metric].mean()
-                std_val = df[metric].std()
-                if std_val > 0:
-                    df[f'{metric}_zscore'] = (df[metric] - mean_val) / std_val
+                # Agrupa por pod/container
+                grouped = df.groupby(['pod', 'container'])[metric]
                 
-                # IQR score
-                q75, q25 = df[metric].quantile([0.75, 0.25])
-                iqr = q75 - q25
-                if iqr > 0:
-                    df[f'{metric}_iqr_score'] = (df[metric] - q25) / iqr
+                # Rolling mean (5 períodos)
+                df[f'{metric}_rolling_mean_5'] = grouped.transform(
+                    lambda x: x.rolling(window=5, min_periods=1).mean()
+                )
                 
-                # Modified Z-score usando mediana
-                median_val = df[metric].median()
-                mad = np.median(np.abs(df[metric] - median_val))
-                if mad > 0:
-                    df[f'{metric}_modified_zscore'] = 0.6745 * (df[metric] - median_val) / mad
+                # Rolling std (5 períodos)
+                df[f'{metric}_rolling_std_5'] = grouped.transform(
+                    lambda x: x.rolling(window=5, min_periods=1).std()
+                )
+                
+                # Diferença com período anterior
+                df[f'{metric}_diff'] = grouped.diff()
+                
+                # Taxa de mudança
+                df[f'{metric}_pct_change'] = grouped.pct_change().fillna(0)
+        
+        return df
     
-    def create_degradation_labels(self, df: pd.DataFrame, 
-                                custom_thresholds: Dict[str, float] = None) -> pd.DataFrame:
-        """Cria labels de degradação para supervised learning"""
-        if df.empty:
-            logger.warning("DataFrame vazio, não é possível criar labels")
-            return df
+    def _create_target_labels(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Cria labels (targets) para treinamento de ML usando thresholds configuráveis
         
-        logger.info("🏷️  Criando labels de degradação...")
-        df = df.copy()
+        Labels criadas:
+        - memory_overload: 1 se memória > threshold_overload, 0 caso contrário
+        - cpu_overload: 1 se CPU > threshold_overload, 0 caso contrário
+        - disk_overload: 1 se disco > threshold_overload, 0 caso contrário
+        - memory_critical: 1 se memória > threshold_critical
+        - cpu_critical: 1 se CPU > threshold_critical
+        - disk_critical: 1 se disco > threshold_critical
+        - critical_overload: 1 se qualquer recurso está crítico
+        - overload_severity: 0 (normal), 1 (warning), 2 (overload), 3 (critical)
+        """
+        logger.info("Criando labels de target com thresholds configuráveis...")
         
-        # Thresholds padrão
-        thresholds = {
-            'memory_percent': 80.0,
-            'cpu_percent': 80.0,
-            'cpu_throttling_percent': 10.0,
-            'disk_percent': 85.0,
-            'network_drop_percent': 1.0,
-            'restart_threshold': 0  # mudança de 1 para 0 (detecta qualquer diff > 0)
-        }
-        
-        # Atualiza com thresholds customizados
-        if custom_thresholds:
-            thresholds.update(custom_thresholds)
-            logger.info(f"   Thresholds customizados aplicados: {custom_thresholds}")
-        
-        logger.info(f"   Thresholds ativos: {thresholds}")
-        
-        # Inicializa labels
-        df['degradation_level'] = 0  # 0: Normal
-        df['is_degraded'] = 0        # Binary
-        df['degradation_score'] = 0  # Inicializa score
-        
-        # Lista de condições de degradação
-        degradation_conditions = []
-        condition_names = []
-        
-        # === CONDIÇÕES DE DEGRADAÇÃO ===
-        
-        # 1. Memória alta
+        # Labels de sobrecarga de memória
         if 'memory_usage_percent' in df.columns:
-            memory_degraded = df['memory_usage_percent'] > thresholds['memory_percent']
-            count_memory = memory_degraded.sum()
-            logger.info(f"   ✓ Degradação por memória: {count_memory} ocorrências ({count_memory/len(df)*100:.1f}%)")
-            degradation_conditions.append(memory_degraded)
-            condition_names.append('memory')
-            df['degradation_memory'] = memory_degraded.astype(int)
+            df['memory_warning'] = (df['memory_usage_percent'] > self.thresholds.memory_warning).astype(int)
+            df['memory_overload'] = (df['memory_usage_percent'] > self.thresholds.memory_overload).astype(int)
+            df['memory_critical'] = (df['memory_usage_percent'] > self.thresholds.memory_critical).astype(int)
         else:
-            logger.warning("   ⚠ Coluna 'memory_usage_percent' não encontrada")
-            df['degradation_memory'] = 0
+            df['memory_warning'] = 0
+            df['memory_overload'] = 0
+            df['memory_critical'] = 0
         
-        # 2. CPU alta
+        # Labels de sobrecarga de CPU
         if 'cpu_usage_percent' in df.columns:
-            cpu_degraded = df['cpu_usage_percent'] > thresholds['cpu_percent']
-            count_cpu = cpu_degraded.sum()
-            logger.info(f"   ✓ Degradação por CPU: {count_cpu} ocorrências ({count_cpu/len(df)*100:.1f}%)")
-            degradation_conditions.append(cpu_degraded)
-            condition_names.append('cpu')
-            df['degradation_cpu'] = cpu_degraded.astype(int)
+            df['cpu_warning'] = (df['cpu_usage_percent'] > self.thresholds.cpu_warning).astype(int)
+            df['cpu_overload'] = (df['cpu_usage_percent'] > self.thresholds.cpu_overload).astype(int)
+            df['cpu_critical'] = (df['cpu_usage_percent'] > self.thresholds.cpu_critical).astype(int)
         else:
-            logger.warning("   ⚠ Coluna 'cpu_usage_percent' não encontrada")
-            df['degradation_cpu'] = 0
+            df['cpu_warning'] = 0
+            df['cpu_overload'] = 0
+            df['cpu_critical'] = 0
         
-        # 3. CPU throttling
-        if 'cpu_throttling_percent' in df.columns:
-            throttling_degraded = df['cpu_throttling_percent'] > thresholds['cpu_throttling_percent']
-            count_throttling = throttling_degraded.sum()
-            logger.info(f"   ✓ Degradação por throttling: {count_throttling} ocorrências ({count_throttling/len(df)*100:.1f}%)")
-            degradation_conditions.append(throttling_degraded)
-            condition_names.append('throttling')
-            df['degradation_throttling'] = throttling_degraded.astype(int)
-        else:
-            logger.warning("   ⚠ Coluna 'cpu_throttling_percent' não encontrada")
-            df['degradation_throttling'] = 0
-        
-        # 4. Disk usage alto
+        # Labels de sobrecarga de disco
         if 'disk_usage_percent' in df.columns:
-            disk_degraded = df['disk_usage_percent'] > thresholds['disk_percent']
-            count_disk = disk_degraded.sum()
-            logger.info(f"   ✓ Degradação por disco: {count_disk} ocorrências ({count_disk/len(df)*100:.1f}%)")
-            degradation_conditions.append(disk_degraded)
-            condition_names.append('disk')
-            df['degradation_disk'] = disk_degraded.astype(int)
+            df['disk_warning'] = (df['disk_usage_percent'] > self.thresholds.disk_warning).astype(int)
+            df['disk_overload'] = (df['disk_usage_percent'] > self.thresholds.disk_overload).astype(int)
+            df['disk_critical'] = (df['disk_usage_percent'] > self.thresholds.disk_critical).astype(int)
         else:
-            logger.warning("   ⚠ Coluna 'disk_usage_percent' não encontrada")
-            df['degradation_disk'] = 0
+            df['disk_warning'] = 0
+            df['disk_overload'] = 0
+            df['disk_critical'] = 0
         
-        # 5. Network drops
-        if 'network_drop_percent' in df.columns:
-            network_degraded = df['network_drop_percent'] > thresholds['network_drop_percent']
-            count_network = network_degraded.sum()
-            logger.info(f"   ✓ Degradação por rede: {count_network} ocorrências ({count_network/len(df)*100:.1f}%)")
-            degradation_conditions.append(network_degraded)
-            condition_names.append('network')
-            df['degradation_network'] = network_degraded.astype(int)
-        else:
-            logger.warning("   ⚠ Coluna 'network_drop_percent' não encontrada")
-            df['degradation_network'] = 0
+        # Label combinada de sobrecarga crítica
+        df['critical_overload'] = ((df['memory_critical'] == 1) | 
+                                   (df['cpu_critical'] == 1) |
+                                   (df['disk_critical'] == 1)).astype(int)
         
-        # 6. Pod restarts
-        if 'pod_restarts' in df.columns:
-            restart_diff = df['pod_restarts'].diff()
-            restart_degraded = restart_diff > thresholds['restart_threshold']
-            restart_degraded = restart_degraded.fillna(False)
-            count_restarts = restart_degraded.sum()
-            logger.info(f"   ✓ Degradação por restarts: {count_restarts} ocorrências ({count_restarts/len(df)*100:.1f}%)")
-            degradation_conditions.append(restart_degraded)
-            condition_names.append('restarts')
-            df['degradation_restarts'] = restart_degraded.astype(int)
-        else:
-            logger.warning("   ⚠ Coluna 'pod_restarts' não encontrada")
-            df['degradation_restarts'] = 0
+        # Severidade de sobrecarga (multi-class: 0=normal, 1=warning, 2=overload, 3=critical)
+        df['overload_severity'] = 0  # Normal
         
-        # === CRIAÇÃO DOS LABELS ===
-        if len(degradation_conditions) == 0:
-            logger.error("   ❌ NENHUMA condição de degradação pôde ser criada!")
-            logger.error("   Verifique se as features derivadas foram calculadas corretamente")
-            return df
+        # Warning
+        warning_condition = ((df['memory_warning'] == 1) | 
+                            (df['cpu_warning'] == 1) | 
+                            (df['disk_warning'] == 1))
+        df.loc[warning_condition, 'overload_severity'] = 1
         
-        logger.info(f"   Total de condições verificadas: {len(degradation_conditions)}")
+        # Overload
+        overload_condition = ((df['memory_overload'] == 1) | 
+                             (df['cpu_overload'] == 1) | 
+                             (df['disk_overload'] == 1))
+        df.loc[overload_condition, 'overload_severity'] = 2
         
-        # Conta quantas condições são verdadeiras para cada linha
-        total_conditions = pd.Series([0] * len(df), index=df.index)
-        for condition in degradation_conditions:
-            total_conditions = total_conditions + condition.astype(int)
+        # Critical (sobrescreve overload)
+        critical_condition = ((df['memory_critical'] == 1) | 
+                             (df['cpu_critical'] == 1) | 
+                             (df['disk_critical'] == 1))
+        df.loc[critical_condition, 'overload_severity'] = 3
         
-        df['degradation_score'] = total_conditions
-        
-        # Labels multi-classe baseados na severidade
-        df.loc[total_conditions == 1, 'degradation_level'] = 1  # Leve
-        df.loc[(total_conditions >= 2) & (total_conditions <= 3), 'degradation_level'] = 2  # Moderada
-        df.loc[total_conditions >= 4, 'degradation_level'] = 3  # Severa
-        
-        # Label binário
-        df.loc[total_conditions > 0, 'is_degraded'] = 1
-        
-        # Verifica se algum label foi criado
-        degraded_count = (df['is_degraded'] == 1).sum()
-        if degraded_count == 0:
-            logger.warning("   ⚠️  ATENÇÃO: Nenhum registro foi marcado como degradado!")
-            logger.warning("   Considere ajustar os thresholds para valores mais baixos")
-        else:
-            logger.info(f"   ✓ Total de registros degradados: {degraded_count} ({degraded_count/len(df)*100:.1f}%)")
-        
-        # === ESTATÍSTICAS DOS LABELS ===
-        self._print_label_statistics(df, condition_names)
+        # Estatísticas dos labels
+        logger.info("\n📊 Distribuição dos Labels (usando thresholds configuráveis):")
+        logger.info(f"   Memory Overload (>{self.thresholds.memory_overload}%): {df['memory_overload'].sum()} / {len(df)} ({df['memory_overload'].mean()*100:.2f}%)")
+        logger.info(f"   CPU Overload (>{self.thresholds.cpu_overload}%): {df['cpu_overload'].sum()} / {len(df)} ({df['cpu_overload'].mean()*100:.2f}%)")
+        logger.info(f"   Disk Overload (>{self.thresholds.disk_overload}%): {df['disk_overload'].sum()} / {len(df)} ({df['disk_overload'].mean()*100:.2f}%)")
+        logger.info(f"   Critical Overload: {df['critical_overload'].sum()} / {len(df)} ({df['critical_overload'].mean()*100:.2f}%)")
+        logger.info(f"\n   Severity Distribution:")
+        logger.info(f"{df['overload_severity'].value_counts().sort_index()}")
         
         return df
+
+
+class MLDatasetGenerator:
+    """Classe principal para gerar dataset completo para ML"""
     
-    def _print_label_statistics(self, df: pd.DataFrame, condition_names: List[str]) -> None:
-        """Imprime estatísticas dos labels"""
-        logger.info("📊 Distribuição de labels:")
+    def __init__(self, prometheus_url: str, thresholds: Optional[ThresholdConfig] = None,
+                 username: Optional[str] = None, password: Optional[str] = None,
+                 verify_ssl: bool = True):
+        """
+        Inicializa gerador de dataset
         
-        # Verifica se as colunas de target existem
-        target_cols = ['degradation_level', 'is_degraded', 'degradation_score']
-        missing_targets = [col for col in target_cols if col not in df.columns]
+        Args:
+            prometheus_url: URL do Prometheus
+            thresholds: Configuração de thresholds (usa padrão se None)
+            username: Usuário para Basic Auth (opcional)
+            password: Senha para Basic Auth (opcional)
+            verify_ssl: Verificar certificado SSL (default: True)
+        """
+        self.connector = PrometheusConnector(prometheus_url, username=username, 
+                                             password=password, verify_ssl=verify_ssl)
+        self.extractor = MetricsExtractor(self.connector)
         
-        if missing_targets:
-            logger.error(f"   ❌ TARGETS FALTANDO: {missing_targets}")
-            return
+        # Usa thresholds padrão se não fornecido
+        if thresholds is None:
+            thresholds = ThresholdConfig()
         
-        # Distribuição multi-classe
-        if 'degradation_level' in df.columns:
-            label_counts = df['degradation_level'].value_counts().sort_index()
-            labels = ['Normal', 'Leve', 'Moderada', 'Severa']
-            
-            logger.info("   Degradation Level (multi-classe):")
-            for level, count in label_counts.items():
-                if level < len(labels):
-                    pct = count / len(df) * 100
-                    logger.info(f"     {level} ({labels[level]}): {count:,} ({pct:.1f}%)")
-        
-        # Distribuição binária
-        if 'is_degraded' in df.columns:
-            binary_counts = df['is_degraded'].value_counts().sort_index()
-            logger.info("   Is Degraded (binário):")
-            for val, count in binary_counts.items():
-                label = "Normal" if val == 0 else "Degradado"
-                pct = count / len(df) * 100
-                logger.info(f"     {val} ({label}): {count:,} ({pct:.1f}%)")
-        
-        # Distribuição do score
-        if 'degradation_score' in df.columns:
-            score_stats = df['degradation_score'].describe()
-            logger.info(f"   Degradation Score: min={score_stats['min']:.0f}, max={score_stats['max']:.0f}, mean={score_stats['mean']:.2f}")
-        
-        # Distribuição das condições individuais
-        if condition_names:
-            logger.info("   Condições individuais:")
-            for condition in condition_names:
-                col_name = f'degradation_{condition}'
-                if col_name in df.columns:
-                    count = df[col_name].sum()
-                    pct = count / len(df) * 100
-                    logger.info(f"     {condition}: {count:,} ({pct:.1f}%)")
-        
-        # Lista todas as colunas de degradação criadas
-        degradation_cols = [col for col in df.columns if col.startswith('degradation_')]
-        logger.info(f"   Total de colunas target criadas: {len(degradation_cols)}")
-        logger.info(f"   Targets: {degradation_cols}")
+        self.thresholds = thresholds
+        self.engineer = FeatureEngineer(thresholds)
+        self.dataset = None
     
-    def clean_dataset(self, df: pd.DataFrame, 
-                     max_missing_percent: float = 30.0,
-                     fill_strategy: str = 'median') -> pd.DataFrame:
-        """Limpa e prepara dataset para ML"""
-        if df.empty:
-            return df
+    def generate_dataset(self, duration_minutes: int = 60, step: str = '30s',
+                        pod_filter: Optional[str] = None, 
+                        namespace: Optional[str] = None) -> pd.DataFrame:
+        """
+        Gera dataset completo para ML
         
-        logger.info("🧹 Limpando dataset...")
-        df = df.copy()
+        Args:
+            duration_minutes: Duração da coleta em minutos
+            step: Intervalo entre medições
+            pod_filter: Filtro regex para pods
+            namespace: Namespace específico
         
-        initial_rows = len(df)
-        initial_cols = len(df.columns)
+        Returns:
+            DataFrame pronto para ML
+        """
+        logger.info("="*70)
+        logger.info("INICIANDO GERAÇÃO DE DATASET PARA MACHINE LEARNING")
+        logger.info("="*70)
         
-        # Remove colunas com muitos valores faltantes
-        missing_percent = (df.isnull().sum() / len(df)) * 100
-        cols_to_drop = missing_percent[missing_percent > max_missing_percent].index.tolist()
+        # Testa conexão
+        if not self.connector.test_connection():
+            raise ConnectionError("Não foi possível conectar ao Prometheus")
         
-        if cols_to_drop:
-            logger.info(f"   Removendo {len(cols_to_drop)} colunas com >{max_missing_percent}% missing")
-            df = df.drop(columns=cols_to_drop)
+        # Calcula período
+        end_time = datetime.now()
+        start_time = end_time - timedelta(minutes=duration_minutes)
+        
+        logger.info(f"\nPeríodo: {start_time} até {end_time}")
+        logger.info(f"Step: {step}")
+        if pod_filter:
+            logger.info(f"Filtro de pods: {pod_filter}")
+        if namespace:
+            logger.info(f"Namespace: {namespace}")
+        
+        # Extrai métricas
+        df_raw = self.extractor.extract_metrics(
+            start_time, end_time, step, pod_filter, namespace
+        )
+        
+        if df_raw.empty:
+            logger.error("Nenhuma métrica foi coletada!")
+            return pd.DataFrame()
+        
+        # Cria features
+        df_ml = self.engineer.create_ml_features(df_raw)
         
         # Remove linhas com muitos valores faltantes
-        row_threshold = len(df.columns) * (1 - max_missing_percent / 100)
-        df = df.dropna(thresh=int(row_threshold))
+        threshold = len(df_ml.columns) * 0.5
+        df_ml = df_ml.dropna(thresh=threshold)
         
-        # Preenche valores faltantes remanescentes
-        numeric_cols = df.select_dtypes(include=[np.number]).columns
+        # Preenche valores faltantes restantes
+        numeric_columns = df_ml.select_dtypes(include=[np.number]).columns
+        df_ml[numeric_columns] = df_ml[numeric_columns].fillna(0)
         
-        for col in numeric_cols:
-            if col not in ['timestamp']:
-                if fill_strategy == 'median':
-                    df[col] = df[col].fillna(df[col].median())
-                elif fill_strategy == 'mean':
-                    df[col] = df[col].fillna(df[col].mean())
-                elif fill_strategy == 'zero':
-                    df[col] = df[col].fillna(0)
-                elif fill_strategy == 'forward':
-                    df[col] = df[col].fillna(method='ffill')
+        self.dataset = df_ml
         
-        # Preenche colunas categóricas
-        categorical_cols = df.select_dtypes(include=['object', 'category']).columns
-        for col in categorical_cols:
-            if col not in ['datetime']:
-                df[col] = df[col].fillna('unknown')
+        logger.info("\n" + "="*70)
+        logger.info("✅ DATASET GERADO COM SUCESSO!")
+        logger.info("="*70)
         
-        # Remove linhas duplicadas baseadas no timestamp
-        if 'timestamp' in df.columns:
-            df = df.drop_duplicates(subset=['timestamp'], keep='last')
-        
-        # Remove colunas constantes (variância zero)
-        constant_cols = []
-        for col in numeric_cols:
-            if df[col].nunique() <= 1:
-                constant_cols.append(col)
-        
-        if constant_cols:
-            logger.info(f"   Removendo {len(constant_cols)} colunas constantes")
-            df = df.drop(columns=constant_cols)
-        
-        # Remove outliers extremos (opcional)
-        # self._remove_extreme_outliers(df, numeric_cols)
-        
-        final_rows = len(df)
-        final_cols = len(df.columns)
-        
-        logger.info(f"   Linhas: {initial_rows} → {final_rows} ({((final_rows-initial_rows)/initial_rows)*100:+.1f}%)")
-        logger.info(f"   Colunas: {initial_cols} → {final_cols} ({((final_cols-initial_cols)/initial_cols)*100:+.1f}%)")
-        
-        return df
+        return df_ml
     
-    def export_dataset(self, df: pd.DataFrame, 
-                      filename: str = None, 
-                      format: str = 'csv',
-                      include_metadata: bool = True) -> str:
-        """Exporta dataset em diferentes formatos"""
-        if df.empty:
-            logger.error("❌ Dataset vazio, nada para exportar")
-            return None
+    def save_dataset(self, output_path: str = 'kubernetes_ml_dataset', 
+                    formats: List[str] = ['csv', 'parquet']):
+        """
+        Salva dataset em múltiplos formatos
         
-        # Gera nome do arquivo se não fornecido
-        if not filename:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"pod_degradation_dataset_{self.container_name}_{timestamp}"
-        
-        # Remove extensão se fornecida
-        filename = filename.replace('.csv', '').replace('.parquet', '').replace('.json', '')
-        
-        # Prepara dados para exportação
-        export_df = df.copy()
-        
-        # Remove colunas de debugging se existirem
-        debug_cols = [col for col in export_df.columns if col.startswith('debug_')]
-        if debug_cols:
-            export_df = export_df.drop(columns=debug_cols)
-        
-        try:
-            if format.lower() == 'csv':
-                filepath = f"{filename}.csv"
-                export_df.to_csv(filepath, index=False, float_format='%.6f')
-                
-            elif format.lower() == 'parquet':
-                filepath = f"{filename}.parquet"
-                export_df.to_parquet(filepath, index=False, engine='pyarrow')
-                
-            elif format.lower() == 'json':
-                filepath = f"{filename}.json"
-                export_df.to_json(filepath, orient='records', date_format='iso', indent=2)
-                
-            else:
-                logger.error(f"❌ Formato não suportado: {format}")
-                return None
-            
-            # Cria arquivo de metadados se solicitado
-            if include_metadata:
-                self._create_metadata_file(df, filepath)
-            
-            # Estatísticas do arquivo
-            file_size_mb = os.path.getsize(filepath) / (1024 * 1024)
-            
-            logger.info(f"✅ Dataset exportado: {filepath}")
-            logger.info(f"   Registros: {len(export_df):,}")
-            logger.info(f"   Colunas: {len(export_df.columns)}")
-            logger.info(f"   Tamanho: {file_size_mb:.2f} MB")
-            logger.info(f"   Período: {export_df['datetime'].min()} até {export_df['datetime'].max()}")
-            
-            return filepath
-            
-        except Exception as e:
-            logger.error(f"❌ Erro ao exportar dataset: {e}")
-            return None
-    
-    def _create_metadata_file(self, df: pd.DataFrame, dataset_filepath: str) -> None:
-        """Cria arquivo de metadados do dataset"""
-        metadata = {
-            "dataset_info": {
-                "filename": os.path.basename(dataset_filepath),
-                "created_at": datetime.now().isoformat(),
-                "container_name": self.container_name,
-                "namespace": self.namespace,
-                "prometheus_url": self.prometheus_url
-            },
-            "data_summary": {
-                "total_records": len(df),
-                "total_columns": len(df.columns),
-                "start_time": df['datetime'].min().isoformat(),
-                "end_time": df['datetime'].max().isoformat(),
-                "duration_hours": (df['datetime'].max() - df['datetime'].min()).total_seconds() / 3600
-            },
-            "column_info": {},
-            "label_distribution": {},
-            "data_quality": {}
-        }
-        
-        # Informações das colunas
-        for col in df.columns:
-            col_info = {
-                "dtype": str(df[col].dtype),
-                "non_null_count": int(df[col].count()),
-                "null_count": int(df[col].isnull().sum()),
-                "null_percentage": float((df[col].isnull().sum() / len(df)) * 100)
-            }
-            
-            if df[col].dtype in ['float64', 'int64']:
-                col_info.update({
-                    "mean": float(df[col].mean()) if not df[col].empty else None,
-                    "std": float(df[col].std()) if not df[col].empty else None,
-                    "min": float(df[col].min()) if not df[col].empty else None,
-                    "max": float(df[col].max()) if not df[col].empty else None
-                })
-            
-            metadata["column_info"][col] = col_info
-        
-        # Distribuição de labels
-        if 'degradation_level' in df.columns:
-            metadata["label_distribution"]["degradation_level"] = df['degradation_level'].value_counts().to_dict()
-        
-        if 'is_degraded' in df.columns:
-            metadata["label_distribution"]["is_degraded"] = df['is_degraded'].value_counts().to_dict()
-        
-        # Qualidade dos dados
-        metadata["data_quality"] = {
-            "total_missing_values": int(df.isnull().sum().sum()),
-            "missing_percentage": float((df.isnull().sum().sum() / (len(df) * len(df.columns))) * 100),
-            "duplicate_rows": int(df.duplicated().sum())
-        }
-        
-        # Salva metadados
-        metadata_path = dataset_filepath.replace('.csv', '').replace('.parquet', '').replace('.json', '') + '_metadata.json'
-        
-        with open(metadata_path, 'w') as f:
-            json.dump(metadata, f, indent=2, default=str)
-        
-        logger.info(f"📋 Metadados salvos: {metadata_path}")
-    
-    def generate_ml_ready_dataset(self, 
-                                 duration_hours: int = 24,
-                                 step_seconds: int = 30,
-                                 include_labels: bool = True,
-                                 custom_thresholds: Dict[str, float] = None,
-                                 export_format: str = 'csv',
-                                 filename: str = None,
-                                 max_missing_percent: float = 30.0,
-                                 fill_strategy: str = 'median') -> Tuple[pd.DataFrame, str]:
-        """Pipeline completo para gerar dataset pronto para ML"""
-        
-        logger.info("🤖 GERAÇÃO DE DATASET PARA MACHINE LEARNING")
-        logger.info("=" * 60)
-        
-        try:
-            # 1. Coleta dados básicos
-            df = self.collect_metrics_data(duration_hours, step_seconds)
-            
-            if df.empty:
-                logger.error("❌ Falha na coleta de dados")
-                return pd.DataFrame(), None
-            
-            logger.info(f"✓ Etapa 1/5: {len(df)} registros coletados, {len(df.columns)} colunas")
-            
-            # 2. Calcula features derivadas
-            df = self.calculate_derived_features(df)
-            logger.info(f"✓ Etapa 2/5: Features derivadas calculadas, {len(df.columns)} colunas totais")
-            
-            # 3. Cria labels (se solicitado)
-            if include_labels:
-                logger.info("✓ Etapa 3/5: Criando labels de degradação...")
-                df = self.create_degradation_labels(df, custom_thresholds)
-                
-                # Diagnóstico após criação de labels
-                self.diagnose_dataset(df)
-            else:
-                logger.info("⊘ Etapa 3/5: Labels não solicitados (--no-labels)")
-            
-            # 4. Limpa dataset
-            df = self.clean_dataset(df, max_missing_percent, fill_strategy)
-            logger.info(f"✓ Etapa 4/5: Dataset limpo, {len(df)} registros finais")
-            
-            if df.empty:
-                logger.error("❌ Dataset vazio após limpeza")
-                return pd.DataFrame(), None
-            
-            # 5. Exporta dataset
-            logger.info("✓ Etapa 5/5: Exportando dataset...")
-            filepath = self.export_dataset(df, filename, export_format, include_metadata=True)
-            
-            if not filepath:
-                logger.error("❌ Falha ao exportar dataset")
-                return df, None
-            
-            logger.info("\n" + "=" * 60)
-            logger.info("✅ DATASET PRONTO PARA MACHINE LEARNING!")
-            logger.info(f"📊 Shape final: {df.shape}")
-            logger.info(f"📁 Arquivo: {filepath}")
-            
-            # Verifica se targets foram criados
-            if include_labels:
-                target_cols = [col for col in df.columns if col.startswith('degradation_')]
-                if target_cols:
-                    logger.info(f"🎯 Targets criados: {len(target_cols)}")
-                    logger.info(f"   {target_cols}")
-                else:
-                    logger.warning("⚠️  NENHUM target foi criado! Verifique os thresholds.")
-            
-            return df, filepath
-            
-        except Exception as e:
-            logger.error(f"❌ Erro no pipeline: {e}")
-            import traceback
-            traceback.print_exc()
-            return pd.DataFrame(), None
-    
-    def diagnose_dataset(self, df: pd.DataFrame) -> None:
-        """Diagnostica o dataset e identifica problemas com targets"""
-        logger.info("\n🔍 DIAGNÓSTICO DO DATASET:")
-        logger.info("=" * 50)
-        
-        if df.empty:
-            logger.error("❌ Dataset está vazio!")
+        Args:
+            output_path: Caminho base para salvar arquivos
+            formats: Lista de formatos ('csv', 'parquet', 'json')
+        """
+        if self.dataset is None or self.dataset.empty:
+            logger.error("Dataset vazio, nada para salvar")
             return
         
-        # 1. Verifica colunas básicas
-        logger.info("1. Colunas básicas:")
-        basic_cols = ['timestamp', 'datetime']
-        for col in basic_cols:
-            status = "✓" if col in df.columns else "✗"
-            logger.info(f"   {status} {col}")
+        logger.info("\n💾 Salvando dataset...")
         
-        # 2. Verifica features derivadas críticas
-        logger.info("\n2. Features derivadas críticas para targets:")
-        critical_features = [
-            'memory_usage_percent',
-            'cpu_usage_percent', 
-            'cpu_throttling_percent',
-            'disk_usage_percent',
-            'network_drop_percent'
-        ]
+        for fmt in formats:
+            file_path = f"{output_path}.{fmt}"
+            
+            if fmt == 'csv':
+                self.dataset.to_csv(file_path, index=False)
+            elif fmt == 'parquet':
+                self.dataset.to_parquet(file_path, index=False)
+            elif fmt == 'json':
+                self.dataset.to_json(file_path, orient='records', date_format='iso')
+            
+            import os
+            size_mb = os.path.getsize(file_path) / 1024 / 1024
+            logger.info(f"   ✅ {file_path} ({size_mb:.2f} MB)")
         
-        for feat in critical_features:
-            if feat in df.columns:
-                stats = df[feat].describe()
-                logger.info(f"   ✓ {feat}: min={stats['min']:.2f}, max={stats['max']:.2f}, mean={stats['mean']:.2f}")
-            else:
-                logger.warning(f"   ✗ {feat}: FALTANDO!")
-        
-        # 3. Verifica targets
-        logger.info("\n3. Colunas de targets:")
-        target_cols = [
-            'degradation_level',
-            'is_degraded', 
-            'degradation_score',
-            'degradation_memory',
-            'degradation_cpu',
-            'degradation_throttling',
-            'degradation_disk',
-            'degradation_network',
-            'degradation_restarts'
-        ]
-        
-        targets_found = 0
-        for col in target_cols:
-            if col in df.columns:
-                if col in ['degradation_level', 'is_degraded']:
-                    dist = df[col].value_counts().to_dict()
-                    logger.info(f"   ✓ {col}: {dist}")
-                else:
-                    count = df[col].sum()
-                    logger.info(f"   ✓ {col}: {count} ocorrências")
-                targets_found += 1
-            else:
-                logger.error(f"   ✗ {col}: NÃO ENCONTRADO!")
-        
-        logger.info(f"\n   Total targets encontrados: {targets_found}/{len(target_cols)}")
-        
-        # 4. Análise de valores
-        if 'memory_usage_percent' in df.columns:
-            logger.info("\n4. Análise de valores (exemplo: memória):")
-            mem = df['memory_usage_percent']
-            logger.info(f"   Valores > 80%: {(mem > 80).sum()}")
-            logger.info(f"   Valores > 90%: {(mem > 90).sum()}")
-            logger.info(f"   Valores NaN: {mem.isna().sum()}")
-        
-        # 5. Resumo final
-        logger.info("\n5. Resumo:")
-        logger.info(f"   Total de colunas: {len(df.columns)}")
-        logger.info(f"   Total de registros: {len(df)}")
-        logger.info(f"   Features disponíveis: {len([c for c in df.columns if not c.startswith('degradation_') and c not in ['timestamp', 'datetime']])}")
-        logger.info(f"   Targets disponíveis: {len([c for c in df.columns if c.startswith('degradation_')])}")
-        
-        logger.info("\n" + "=" * 50)
+        # Salva também a configuração de thresholds
+        self.thresholds.save_to_file(f"{output_path}_thresholds.json")
     
-    def get_feature_importance_ready_columns(self, df: pd.DataFrame) -> Tuple[List[str], List[str]]:
-        """Retorna listas de colunas de features e targets para ML"""
+    def get_dataset_info(self) -> Dict:
+        """Retorna informações do dataset gerado"""
+        if self.dataset is None or self.dataset.empty:
+            return {}
         
-        # Colunas a excluir das features
-        exclude_cols = [
-            'timestamp', 'datetime',
-            'degradation_level', 'is_degraded', 'degradation_score'
-        ]
+        info = {
+            'total_records': len(self.dataset),
+            'total_features': len(self.dataset.columns),
+            'pods_monitored': self.dataset['pod'].nunique() if 'pod' in self.dataset.columns else 0,
+            'time_range': {
+                'start': str(self.dataset['timestamp'].min()),
+                'end': str(self.dataset['timestamp'].max()),
+            },
+            'thresholds_used': self.thresholds.to_dict(),
+            'target_distribution': {
+                'memory_overload': int(self.dataset['memory_overload'].sum()),
+                'cpu_overload': int(self.dataset['cpu_overload'].sum()),
+                'disk_overload': int(self.dataset['disk_overload'].sum()),
+                'critical_overload': int(self.dataset['critical_overload'].sum()),
+            },
+            'features': list(self.dataset.columns)
+        }
         
-        # Adiciona colunas de degradação individual (targets auxiliares)
-        degradation_cols = [col for col in df.columns if col.startswith('degradation_')]
-        exclude_cols.extend(degradation_cols)
-        
-        # Remove duplicatas
-        exclude_cols = list(set(exclude_cols))
-        
-        # Features (todas menos as excluídas)
-        feature_cols = [col for col in df.columns if col not in exclude_cols]
-        
-        # Targets disponíveis
-        target_cols = []
-        if 'degradation_level' in df.columns:
-            target_cols.append('degradation_level')
-        if 'is_degraded' in df.columns:
-            target_cols.append('is_degraded')
-        if 'degradation_score' in df.columns:
-            target_cols.append('degradation_score')
-        
-        return feature_cols, target_cols
-        """Retorna listas de colunas de features e targets para ML"""
-        
-        # Colunas a excluir das features
-        exclude_cols = [
-            'timestamp', 'datetime',
-            'degradation_level', 'is_degraded', 'degradation_score'
-        ]
-        
-        # Adiciona colunas de degradação individual (targets auxiliares)
-        degradation_cols = [col for col in df.columns if col.startswith('degradation_')]
-        exclude_cols.extend(degradation_cols)
-        
-        # Features (todas menos as excluídas)
-        feature_cols = [col for col in df.columns if col not in exclude_cols]
-        
-        # Targets disponíveis
-        target_cols = []
-        if 'degradation_level' in df.columns:
-            target_cols.append('degradation_level')
-        if 'is_degraded' in df.columns:
-            target_cols.append('is_degraded')
-        
-        return feature_cols, target_cols
+        return info
     
-    def print_dataset_summary(self, df: pd.DataFrame) -> None:
-        """Imprime resumo detalhado do dataset"""
-        if df.empty:
-            logger.info("Dataset vazio")
+    def print_summary(self):
+        """Imprime resumo do dataset"""
+        if self.dataset is None or self.dataset.empty:
+            print("Dataset vazio")
             return
         
-        logger.info("\n📋 RESUMO DO DATASET:")
-        logger.info("=" * 50)
+        print("\n" + "="*70)
+        print("RESUMO DO DATASET")
+        print("="*70)
         
-        logger.info(f"Shape: {df.shape}")
+        info = self.get_dataset_info()
         
-        if 'datetime' in df.columns:
-            duration = df['datetime'].max() - df['datetime'].min()
-            logger.info(f"Período: {df['datetime'].min()} até {df['datetime'].max()}")
-            logger.info(f"Duração: {duration}")
-            
-            # Frequência de coleta
-            if len(df) > 1:
-                avg_interval = duration / (len(df) - 1)
-                logger.info(f"Intervalo médio: {avg_interval}")
+        print(f"\n📊 Informações Gerais:")
+        print(f"   • Total de registros: {info['total_records']:,}")
+        print(f"   • Total de features: {info['total_features']}")
+        print(f"   • Pods monitorados: {info['pods_monitored']}")
+        print(f"   • Período: {info['time_range']['start']} até {info['time_range']['end']}")
         
-        # Tipos de colunas
-        logger.info(f"\n🔢 TIPOS DE COLUNAS:")
-        dtype_counts = df.dtypes.value_counts()
-        for dtype, count in dtype_counts.items():
-            logger.info(f"   {dtype}: {count} colunas")
+        print(f"\n⚙️  Thresholds Utilizados:")
+        for resource, thresholds in info['thresholds_used'].items():
+            print(f"   {resource.capitalize()}:")
+            print(f"      Warning: {thresholds['warning']}%")
+            print(f"      Overload: {thresholds['overload']}%")
+            print(f"      Critical: {thresholds['critical']}%")
         
-        # Estatísticas numéricas
-        numeric_cols = df.select_dtypes(include=[np.number]).columns
-        logger.info(f"\n📊 COLUNAS NUMÉRICAS: {len(numeric_cols)}")
+        print(f"\n🎯 Distribuição dos Targets:")
+        print(f"   • Memory Overload: {info['target_distribution']['memory_overload']}")
+        print(f"   • CPU Overload: {info['target_distribution']['cpu_overload']}")
+        print(f"   • Disk Overload: {info['target_distribution']['disk_overload']}")
+        print(f"   • Critical Overload: {info['target_distribution']['critical_overload']}")
         
-        if len(numeric_cols) > 0:
-            stats_df = df[numeric_cols].describe()
-            logger.info(f"\n{stats_df}")
+        print(f"\n📋 Features Disponíveis ({len(info['features'])}):")
+        for i, feature in enumerate(info['features'][:20], 1):
+            print(f"   {i}. {feature}")
+        if len(info['features']) > 20:
+            print(f"   ... e mais {len(info['features']) - 20} features")
         
-        # Labels (se existirem)
-        if 'degradation_level' in df.columns:
-            logger.info(f"\n🏷️  DISTRIBUIÇÃO DE LABELS:")
-            label_counts = df['degradation_level'].value_counts().sort_index()
-            labels = ['Normal', 'Leve', 'Moderada', 'Severa']
-            
-            for level, count in label_counts.items():
-                if level < len(labels):
-                    pct = count / len(df) * 100
-                    logger.info(f"   {labels[level]}: {count:,} ({pct:.1f}%)")
-        
-        # Valores faltantes
-        missing = df.isnull().sum()
-        missing_pct = (missing / len(df)) * 100
-        missing_info = pd.DataFrame({
-            'Missing_Count': missing,
-            'Missing_Percent': missing_pct
-        })
-        missing_info = missing_info[missing_info['Missing_Count'] > 0].sort_values('Missing_Count', ascending=False)
-        
-        if len(missing_info) > 0:
-            logger.info(f"\n❌ VALORES FALTANTES (Top 10):")
-            logger.info(f"\n{missing_info.head(10)}")
-        else:
-            logger.info(f"\n✅ NENHUM VALOR FALTANTE!")
-        
-        # Features vs Targets
-        feature_cols, target_cols = self.get_feature_importance_ready_columns(df)
-        logger.info(f"\n🎯 PREPARAÇÃO PARA ML:")
-        logger.info(f"   Features disponíveis: {len(feature_cols)}")
-        logger.info(f"   Targets disponíveis: {len(target_cols)}")
-        
-        if target_cols:
-            logger.info(f"   Targets: {', '.join(target_cols)}")
+        print("\n📈 Estatísticas das Features Principais:")
+        key_features = ['memory_usage_percent', 'cpu_usage_percent', 
+                       'disk_usage_percent', 'network_total_bytes']
+        for feature in key_features:
+            if feature in self.dataset.columns:
+                print(f"\n   {feature}:")
+                print(f"      Média: {self.dataset[feature].mean():.2f}")
+                print(f"      Mediana: {self.dataset[feature].median():.2f}")
+                print(f"      Std: {self.dataset[feature].std():.2f}")
+                print(f"      Min: {self.dataset[feature].min():.2f}")
+                print(f"      Max: {self.dataset[feature].max():.2f}")
 
-# Adiciona import necessário
-import os
 
-def main():
+def parse_arguments():
+    """Parse argumentos da linha de comando"""
     parser = argparse.ArgumentParser(
-        description='Gerador de Dataset ML para Degradação de Pods Kubernetes',
+        description='Gerador de Dataset ML para Detecção de Sobrecarga em Kubernetes',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Exemplos de uso:
-  python ml_dataset_generator.py --hours 48 --step 15
-  python ml_dataset_generator.py --prometheus http://prometheus:9090 --container my-app --hours 72
-  python ml_dataset_generator.py --format parquet --filename meu_dataset --no-labels
-  python ml_dataset_generator.py --custom-thresholds memory_percent=85 cpu_percent=75
+
+  # Uso básico (thresholds padrão)
+  python sistema_coleta_dados.py --prometheus-url http://localhost:9090
+
+  # Com autenticação Basic Auth
+  python sistema_coleta_dados.py \
+    --prometheus-url http://localhost:9090 \
+    --username admin \
+    --password secret
+
+  # Com autenticação e SSL desabilitado
+  python sistema_coleta_dados.py \
+    --prometheus-url https://prometheus.example.com \
+    --username monitor \
+    --password mypass123 \
+    --no-verify-ssl
+
+  # Senha via variável de ambiente (mais seguro)
+  export PROMETHEUS_PASSWORD="secret"
+  python sistema_coleta_dados.py \
+    --prometheus-url http://localhost:9090 \
+    --username admin \
+    --password-env PROMETHEUS_PASSWORD
+
+  # Com thresholds personalizados
+  python sistema_coleta_dados.py \
+    --prometheus-url http://localhost:9090 \
+    --memory-overload 85 \
+    --cpu-overload 85 \
+    --memory-critical 95
+
+  # Coleta longa com filtros
+  python sistema_coleta_dados.py \
+    --prometheus-url http://localhost:9090 \
+    --duration 120 \
+    --step 15s \
+    --pod-filter "stress-.*" \
+    --namespace stress-test
+
+  # Carregar thresholds de arquivo
+  python sistema_coleta_dados.py \
+    --prometheus-url http://localhost:9090 \
+    --thresholds-file custom_thresholds.json
+
+  # Salvar thresholds atuais
+  python sistema_coleta_dados.py \
+    --save-thresholds-only \
+    --memory-overload 75 \
+    --cpu-overload 75 \
+    --output thresholds.json
         """
     )
     
-    parser.add_argument('--prometheus', default='http://localhost:9090',
-                       help='URL do Prometheus (padrão: http://localhost:9090)')
-    parser.add_argument('--container', default='prime-server',
-                       help='Nome do container (padrão: prime-server)')
-    parser.add_argument('--namespace', default=None,
-                       help='Namespace do Kubernetes (opcional)')
+    # Argumentos principais
+    parser.add_argument('--prometheus-url', type=str, default='http://localhost:9090',
+                       help='URL do Prometheus (default: http://localhost:9090)')
     
-    parser.add_argument('--hours', type=int, default=24,
-                       help='Duração em horas (padrão: 24)')
-    parser.add_argument('--step', type=int, default=30,
-                       help='Intervalo em segundos (padrão: 30)')
+    # Autenticação
+    auth_group = parser.add_argument_group('Autenticação Prometheus')
+    auth_group.add_argument('--username', type=str, default=None,
+                           help='Usuário para Basic Authentication')
+    auth_group.add_argument('--password', type=str, default=None,
+                           help='Senha para Basic Authentication (use --password-env para mais segurança)')
+    auth_group.add_argument('--password-env', type=str, default=None,
+                           help='Nome da variável de ambiente contendo a senha')
+    auth_group.add_argument('--no-verify-ssl', action='store_true',
+                           help='Desabilitar verificação de certificado SSL (não recomendado em produção)')
     
-    parser.add_argument('--format', choices=['csv', 'parquet', 'json'], default='csv',
-                       help='Formato de exportação (padrão: csv)')
-    parser.add_argument('--filename', default=None,
-                       help='Nome do arquivo (sem extensão)')
-    parser.add_argument('--no-labels', action='store_true',
-                       help='Não incluir labels de degradação')
+    parser.add_argument('--duration', type=int, default=60,
+                       help='Duração da coleta em minutos (default: 60)')
     
-    parser.add_argument('--max-missing', type=float, default=30.0,
-                       help='Máximo percentual de valores faltantes (padrão: 30)')
-    parser.add_argument('--fill-strategy', choices=['median', 'mean', 'zero', 'forward'], 
-                       default='median', help='Estratégia para preencher NaN (padrão: median)')
+    parser.add_argument('--step', type=str, default='30s',
+                       help='Intervalo entre medições (default: 30s)')
     
-    parser.add_argument('--custom-thresholds', nargs='*', default=[],
-                       help='Thresholds customizados (ex: memory_percent=85 cpu_percent=75)')
+    parser.add_argument('--pod-filter', type=str, default=None,
+                       help='Filtro regex para pods (ex: "stress-.*")')
     
-    parser.add_argument('--workers', type=int, default=5,
-                       help='Número de threads para coleta (padrão: 5)')
-    parser.add_argument('--timeout', type=int, default=30,
-                       help='Timeout para queries em segundos (padrão: 30)')
-    parser.add_argument('--verbose', action='store_true',
-                       help='Logging detalhado')
+    parser.add_argument('--namespace', type=str, default=None,
+                       help='Namespace específico')
     
-    args = parser.parse_args()
+    parser.add_argument('--output', type=str, default='kubernetes_ml_dataset',
+                       help='Nome base do arquivo de saída (default: kubernetes_ml_dataset)')
     
-    # Configura logging
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
+    parser.add_argument('--formats', nargs='+', default=['csv', 'parquet'],
+                       choices=['csv', 'parquet', 'json'],
+                       help='Formatos de saída (default: csv parquet)')
     
-    # Processa thresholds customizados
-    custom_thresholds = {}
-    for threshold in args.custom_thresholds:
-        try:
-            key, value = threshold.split('=')
-            custom_thresholds[key] = float(value)
-        except ValueError:
-            logger.warning(f"Threshold inválido ignorado: {threshold}")
+    # Thresholds de Memória
+    memory_group = parser.add_argument_group('Thresholds de Memória')
+    memory_group.add_argument('--memory-warning', type=float, default=70.0,
+                             help='Threshold de warning para memória em %% (default: 70)')
+    memory_group.add_argument('--memory-overload', type=float, default=80.0,
+                             help='Threshold de sobrecarga para memória em %% (default: 80)')
+    memory_group.add_argument('--memory-critical', type=float, default=90.0,
+                             help='Threshold crítico para memória em %% (default: 90)')
     
-    try:
-        # Cria gerador
-        generator = PrometheusMLDatasetGenerator(
-            prometheus_url=args.prometheus,
-            container_name=args.container,
-            namespace=args.namespace,
-            timeout=args.timeout
-        )
-        
-        # Gera dataset
-        df, filepath = generator.generate_ml_ready_dataset(
-            duration_hours=args.hours,
-            step_seconds=args.step,
-         #alterado   include_labels=not args.no_labels,
-            include_labels=True,
-            custom_thresholds=custom_thresholds if custom_thresholds else None,
-            export_format=args.format,
-            filename=args.filename,
-            max_missing_percent=args.max_missing,
-            fill_strategy=args.fill_strategy
-        )
-        
-        if df is not None and not df.empty:
-            generator.print_dataset_summary(df)
-            
-            # Informações para uso em ML
-            feature_cols, target_cols = generator.get_feature_importance_ready_columns(df)
-            
-            logger.info(f"\n🎯 PRÓXIMOS PASSOS:")
-            logger.info(f"1. Carregue o dataset: df = pd.read_csv('{filepath}')")
-            logger.info(f"2. Separe features e targets:")
-            logger.info(f"   X = df{feature_cols[:5]}  # {len(feature_cols)} features total")
-            if target_cols:
-                logger.info(f"   y = df['{target_cols[0]}']  # ou qualquer target disponível")
-            logger.info(f"3. Aplique train_test_split, StandardScaler, etc.")
-            logger.info(f"4. Treine modelos: RandomForest, XGBoost, etc.")
-            
-        else:
-            logger.error("❌ Falha ao gerar dataset")
-            sys.exit(1)
-            
-    except KeyboardInterrupt:
-        logger.info("\nProcesso interrompido pelo usuário")
-    except Exception as e:
-        logger.error(f"Erro: {e}")
-        if args.verbose:
-            import traceback
-            traceback.print_exc()
-        sys.exit(1)
+    # Thresholds de CPU
+    cpu_group = parser.add_argument_group('Thresholds de CPU')
+    cpu_group.add_argument('--cpu-warning', type=float, default=70.0,
+                          help='Threshold de warning para CPU em %% (default: 70)')
+    cpu_group.add_argument('--cpu-overload', type=float, default=80.0,
+                          help='Threshold de sobrecarga para CPU em %% (default: 80)')
+    cpu_group.add_argument('--cpu-critical', type=float, default=90.0,
+                          help='Threshold crítico para CPU em %% (default: 90)')
+    
+    # Thresholds de Disco
+    disk_group = parser.add_argument_group('Thresholds de Disco')
+    disk_group.add_argument('--disk-warning', type=float, default=75.0,
+                           help='Threshold de warning para disco em %% (default: 75)')
+    disk_group.add_argument('--disk-overload', type=float, default=85.0,
+                           help='Threshold de sobrecarga para disco em %% (default: 85)')
+    disk_group.add_argument('--disk-critical', type=float, default=95.0,
+                           help='Threshold crítico para disco em %% (default: 95)')
+    
+    # Carregar/Salvar thresholds
+    config_group = parser.add_argument_group('Configuração de Thresholds')
+    config_group.add_argument('--thresholds-file', type=str, default=None,
+                             help='Carregar thresholds de arquivo JSON')
+    config_group.add_argument('--save-thresholds', type=str, default=None,
+                             help='Salvar thresholds em arquivo JSON')
+    config_group.add_argument('--save-thresholds-only', action='store_true',
+                             help='Apenas salvar thresholds e sair (não coletar dados)')
+    
+    return parser.parse_args()
+
+
+# ============================================================================
+# EXEMPLO DE USO
+# ============================================================================
 
 if __name__ == "__main__":
-    main()
+    args = parse_arguments()
+    
+    try:
+        # Obter senha de variável de ambiente se especificado
+        password = args.password
+        if args.password_env:
+            import os
+            password = os.getenv(args.password_env)
+            if not password:
+                logger.error(f"❌ Variável de ambiente '{args.password_env}' não encontrada")
+                exit(1)
+            logger.info(f"✅ Senha carregada da variável de ambiente: {args.password_env}")
+        
+        # Validar autenticação
+        if args.username and not password:
+            logger.error("❌ Username fornecido sem password. Use --password ou --password-env")
+            exit(1)
+        
+        if password and not args.username:
+            logger.error("❌ Password fornecido sem username")
+            exit(1)
+        
+        # Carrega ou cria configuração de thresholds
+        if args.thresholds_file:
+            logger.info(f"📂 Carregando thresholds de: {args.thresholds_file}")
+            thresholds = ThresholdConfig.load_from_file(args.thresholds_file)
+        else:
+            thresholds = ThresholdConfig(
+                memory_warning=args.memory_warning,
+                memory_overload=args.memory_overload,
+                memory_critical=args.memory_critical,
+                cpu_warning=args.cpu_warning,
+                cpu_overload=args.cpu_overload,
+                cpu_critical=args.cpu_critical,
+                disk_warning=args.disk_warning,
+                disk_overload=args.disk_overload,
+                disk_critical=args.disk_critical
+            )
+        
+
+        # Se for apenas para salvar thresholds
+        if args.save_thresholds_only:
+            output_file = args.save_thresholds or args.output or 'thresholds_config.json'
+            thresholds.save_to_file(output_file)
+            logger.info("✅ Thresholds salvos com sucesso!")
+            exit(0)
+        
+        # Cria gerador de dataset com autenticação
+        generator = MLDatasetGenerator(
+            prometheus_url=args.prometheus_url, 
+            thresholds=thresholds,
+            username=args.username,
+            password=password,
+            verify_ssl=not args.no_verify_ssl
+        )
+        
+        args.pod_filter = "app-degradacao-.*"
+        # Gera dataset
+        df = generator.generate_dataset(
+            duration_minutes=args.duration,
+            step=args.step,
+            pod_filter=args.pod_filter,
+            namespace=args.namespace
+        )
+        
+        if df.empty:
+            logger.error("❌ Dataset vazio! Verifique se há pods rodando e métricas disponíveis.")
+            exit(1)
+        
+        # Imprime resumo
+        generator.print_summary()
+        
+        # Salva dataset
+        generator.save_dataset(
+            output_path=args.output,
+            formats=args.formats
+        )
+        
+        # Salva thresholds se solicitado
+        if args.save_thresholds:
+            thresholds.save_to_file(args.save_thresholds)
+        
+        logger.info("\n✨ Coleta de dados concluída com sucesso!")
+        logger.info("\nPróximos passos:")
+        logger.info("  1. Treinar modelo: python sistema_treinamento_ml.py")
+        logger.info(f"  2. Verificar thresholds: cat {args.output}_thresholds.json")
+        logger.info("  3. Ajustar thresholds se necessário e re-executar")
+        
+    except Exception as e:
+        logger.error(f"\n❌ Erro durante execução: {e}")
+        import traceback
+        traceback.print_exc()
+        exit(1)

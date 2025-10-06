@@ -201,6 +201,7 @@ install: setup build import deploy ## Instalação completa (setup + build + dep
 uninstall: ## Remove completamente a aplicação
 	@echo "$(RED)Removendo aplicação...$(NC)"
 	@$(KUBECTL) delete namespace $(NAMESPACE) --ignore-not-found=true
+	@$(KUBECTL) delete -f $(DEPLOYMENT_FILE) --ignore-not-found=true
 	@echo "$(YELLOW)Aguardando namespace ser removido...$(NC)"
 	@while $(KUBECTL) get namespace $(NAMESPACE) >/dev/null 2>&1; do sleep 1; done
 	@echo "$(GREEN)✓ Aplicação removida$(NC)"

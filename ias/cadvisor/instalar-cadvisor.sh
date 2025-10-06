@@ -15,6 +15,10 @@ fi
 # echo "📄 Aplicando ConfigMap..."
 # microk8s kubectl apply -f cadvisor-configmap.yaml
 
+echo "📄 Aplicando Namespace..."
+microk8s kubectl apply -f cadvisor-namespace.yaml
+
+
 echo "📄 Aplicando RBAC..."
 microk8s kubectl apply -f cadvisor-rbac.yaml
 
@@ -46,6 +50,7 @@ LOCAL_INTERFACE="0.0.0.0"
 PID_FILE="/tmp/cadivisor-pf.pid"
 NET_IFACE="ens33"
 RESOURCE_NOME_SISTEMA="CADVISOR"
+
 
 
 # Chama a função principal da biblioteca, passando os argumentos necessários

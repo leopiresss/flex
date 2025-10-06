@@ -2,12 +2,17 @@
 # Alternativa Simples: Usando stress-ng (sem Python)
 # ============================================================================
 
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: stress-test
 ---
 # Deployment 1: Stress de Memória Constante
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: memory-stress
+  namespace: stress-test
   labels:
     app: memory-stress
     type: constant
@@ -42,7 +47,7 @@ spec:
             memory: "128Mi"
             cpu: "100m"
           limits:
-            memory: "512Mi"
+            memory: "500Mi"
             cpu: "500m"
 
 
@@ -52,6 +57,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: variable-stress
+  namespace: stress-test  
   labels:
     app: memory-stress
     type: variable
@@ -94,7 +100,7 @@ spec:
             memory: "128Mi"
             cpu: "100m"
           limits:
-            memory: "512Mi"
+            memory: "500Mi"
             cpu: "1000m"
 
 

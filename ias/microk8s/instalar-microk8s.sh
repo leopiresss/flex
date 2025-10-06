@@ -60,6 +60,24 @@ check_microk8s_status() {
     print_success "MicroK8s está rodando!"
 }
 
+
+enable_registry() {
+    print_status "Habilitando o registry..."
+    
+    microk8s disable registry
+    microk8s enable registry
+    
+    microk8s kubectl get pods -n container-registry
+    microk8s kubectl get svc -n container-registry
+    curl http://localhost:32000/v2/_catalog
+    if [ $? -eq 0 ]; then
+        print_success "Registry habilitado com sucesso!"
+    else
+        print_error "Falha ao habilitar o registry"
+        exit 1
+    fi
+}
+
 # Função para habilitar o dashboard
 enable_dashboard() {
     print_status "Habilitando o dashboard..."
@@ -245,6 +263,7 @@ main() {
     
     check_microk8s
     check_microk8s_status
+ #  enable_registry
     enable_dashboard
     create_admin_user
     generate_token
