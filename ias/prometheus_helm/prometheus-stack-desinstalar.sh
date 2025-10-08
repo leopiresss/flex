@@ -19,7 +19,7 @@ echo "3. Removendo PersistentVolumeClaims..."
 kubectl delete pvc --all -n $NAMESPACE 2>/dev/null
 
 # 4. Apagar namespace
-#echo "4. Removendo namespace..."
-#kubectl delete namespace $NAMESPACE 2>/dev/null
+echo "4. Removendo namespace..."
+kubectl delete namespace $NAMESPACE 2>/dev/null
 
-#echo "Desinstalação concluída!"
+echo "Desinstalação concluída!"

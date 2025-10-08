@@ -391,7 +391,10 @@ class MetricsExtractor:
         
         metrics_config = self.get_metrics_config()
         all_data = []
+
         
+
+        metricas = []
         for metric_name, metric_query in metrics_config.items():
             # Adiciona filtros
             filters = ['container!="POD"', 'container!=""']
@@ -418,7 +421,11 @@ class MetricsExtractor:
             else:
                 # Métricas sem rate() mantém sintaxe original
                 query = f'{metric_query}{{{filters_str}}}'
-            print(query)
+            
+               # Armazena no dicionário
+            metricas.append({'metric_name':metric_name, 'metric_query':query})
+ 
+
             logger.info(f"Coletando: {metric_name}")
             logger.debug(f"Query: {query}")
             result = self.connector.query_range(query, start_ts, end_ts, step)
@@ -436,6 +443,11 @@ class MetricsExtractor:
                             'node': item['metric'].get('node', ''),
                         }
                         all_data.append(record)
+        
+        #gera arquivo com as métricas utilizadas   
+        df_metricas = pd.DataFrame(metricas)
+        df_metricas.index.name = 'metric_id'
+        df_metricas.to_csv('metricas_utilizadas.csv', index=True)
         
         df = pd.DataFrame(all_data)
         logger.info(f"✅ Extração concluída: {len(df)} registros coletados")
@@ -1152,7 +1164,10 @@ if __name__ == "__main__":
             thresholds.save_to_file(output_file)
             logger.info("✅ Thresholds salvos com sucesso!")
             exit(0)
-        
+
+        args.pod_filter = "app-degradacao-.*"
+        args.prometheus_url = "http://192.168.242.134:30090/"
+
         # Cria gerador de dataset com autenticação
         generator = MLDatasetGenerator(
             prometheus_url=args.prometheus_url, 
@@ -1162,7 +1177,7 @@ if __name__ == "__main__":
             verify_ssl=not args.no_verify_ssl
         )
         
-        args.pod_filter = "app-degradacao-.*"
+
         # Gera dataset
         df = generator.generate_dataset(
             duration_minutes=args.duration,

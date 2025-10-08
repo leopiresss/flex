@@ -34,6 +34,9 @@ helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheu
   --set prometheus.prometheusSpec.podMonitorSelectorNilUsesHelmValues=false \
   --set grafana.adminPassword=admin123
 
+#Instalar node-exporter
+#  helm install node-exporter prometheus-community/prometheus-node-exporter
+
 echo ""
 echo "=== Instalação Concluída ==="
 echo ""
@@ -49,9 +52,42 @@ echo "  URL: http://localhost:3000"
 echo "  User: admin"
 echo "  Pass: admin123"
 kubectl port-forward -n monitoring svc/kube-prometheus-stack-grafana 3000:80 &
+
+#Cria um note port
+kubectl get svc -n monitoring kube-prometheus-stack-grafana
+
+kubectl patch svc kube-prometheus-stack-grafana -n monitoring --type='json' -p='[
+  {"op": "replace", "path": "/spec/type", "value": "NodePort"},
+  {"op": "add", "path": "/spec/ports/0/nodePort", "value": 30000}
+]'
+# 1. Verificar o service após a mudança para NodePort
+kubectl get svc -n monitoring kube-prometheus-stack-grafana
+# 2. Verificar a porta NodePort alocada
+kubectl get svc -n monitoring kube-prometheus-stack-grafana -o yaml | grep -A 5 ports
+
+# 3. Verificar se o pod está respondendo
+kubectl get pods -n monitoring | grep grafana 
+
+
+kubectl get svc -n monitoring kube-prometheus-stack-grafana -o yaml | grep -A 5 ports
+
+
 echo ""
 echo "Prometheus:"
 echo "  kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 9090:9090"
 echo "  URL: http://localhost:9090"
 echo ""
-kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 9090:9090 &
+#kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 9090:9090 &
+#Cria um note port
+kubectl get svc -n monitoring kube-prometheus-stack-prometheus
+kubectl patch svc kube-prometheus-stack-prometheus -n monitoring -p '{"spec": {"type": "NodePort", "ports": [{"port": 9090, "targetPort": 9090, "nodePort": 30090, "name": "http-web"}]}}'
+# 1. Verificar o service após a mudança para NodePort
+kubectl get svc -n monitoring kube-prometheus-stack-prometheus
+# 2. Verificar a porta NodePort alocada
+kubectl get svc -n monitoring kube-prometheus-stack-prometheus -o yaml | grep -A 5 ports
+
+# 3. Verificar se o pod está respondendo
+kubectl get pods -n monitoring | grep prometheus 
+
+
+kubectl get svc -n monitoring kube-prometheus-stack-prometheus -o yaml | grep -A 5 ports
